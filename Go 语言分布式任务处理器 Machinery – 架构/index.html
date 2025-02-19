@@ -1,0 +1,1727 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Go 语言分布式任务处理器 Machinery – 架构 | 时空漫步者的日记</title><meta name="author" content="karr"><meta name="copyright" content="karr"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="原文链接：https:&#x2F;&#x2F;marksuper.xyz&#x2F;2022&#x2F;04&#x2F;20&#x2F;machinery1&#x2F; Go 语言分布式任务处理器 Machinery – 架构，源码详解篇你是否因为一个复杂的分布式并发场景且需要进行任务编排而写了一个逻辑复杂，各种耦合，又臭又长的代码？代码跑起来各种bug 浪费时间精力，其他人也看不懂没法接手？ 其实 Go 语言有现成的轮子来辅助你实现复杂的逻辑，让你的代码优美，低耦">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go 语言分布式任务处理器 Machinery – 架构">
+<meta property="og:url" content="https://bitterteaer.asia/Go%20%E8%AF%AD%E8%A8%80%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E5%A4%84%E7%90%86%E5%99%A8%20Machinery%20%E2%80%93%20%E6%9E%B6%E6%9E%84/index.html">
+<meta property="og:site_name" content="时空漫步者的日记">
+<meta property="og:description" content="原文链接：https:&#x2F;&#x2F;marksuper.xyz&#x2F;2022&#x2F;04&#x2F;20&#x2F;machinery1&#x2F; Go 语言分布式任务处理器 Machinery – 架构，源码详解篇你是否因为一个复杂的分布式并发场景且需要进行任务编排而写了一个逻辑复杂，各种耦合，又臭又长的代码？代码跑起来各种bug 浪费时间精力，其他人也看不懂没法接手？ 其实 Go 语言有现成的轮子来辅助你实现复杂的逻辑，让你的代码优美，低耦">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://bitterteaer.asia/img/avatar.jpg">
+<meta property="article:published_time" content="2024-04-11T02:14:31.623Z">
+<meta property="article:modified_time" content="2025-02-19T09:01:15.248Z">
+<meta property="article:author" content="karr">
+<meta property="article:tag" content="人工智能, AI, AGI, AIGC, AI Agent, Prompt, LLM, 人工智能应用, 深度学习, 机器学习, 自然语言处理, 生成式AI, 智能算法, 数据科学, 自动化技术, AI驱动技术, AI解决方案, 人机交互, 认知计算, 算法模型, AI平台, 强人工智能, 弱人工智能, 语义理解, 智能代理, AI系统集成, AI工具">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://bitterteaer.asia/img/avatar.jpg"><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://bitterteaer.asia/Go%20%E8%AF%AD%E8%A8%80%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E5%A4%84%E7%90%86%E5%99%A8%20Machinery%20%E2%80%93%20%E6%9E%B6%E6%9E%84/index.html"><link rel="preconnect" href="//unpkg.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=4.13.0"><link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="https://unpkg.com/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Error',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://unpkg.com/@egjs/infinitegrid@4.11.1/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Go 语言分布式任务处理器 Machinery – 架构',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: false,
+  postUpdate: '2025-02-19 17:01:15'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">280</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">194</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><hr class="custom-hr"/></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="时空漫步者的日记"><span class="site-name">时空漫步者的日记</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Go 语言分布式任务处理器 Machinery – 架构</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-04-11T02:14:31.623Z" title="Created 2024-04-11 10:14:31">2024-04-11</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-02-19T09:01:15.248Z" title="Updated 2025-02-19 17:01:15">2025-02-19</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Go 语言分布式任务处理器 Machinery – 架构"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>原文链接：<a target="_blank" rel="noopener" href="https://marksuper.xyz/2022/04/20/machinery1/">https://marksuper.xyz/2022/04/20/machinery1/</a></p>
+<p>Go 语言分布式任务处理器 Machinery – 架构，源码详解篇<br>你是否因为一个复杂的分布式并发场景且需要进行任务编排而写了一个逻辑复杂，各种耦合，又臭又长的代码？代码跑起来各种bug 浪费时间精力，其他人也看不懂没法接手？</p>
+<p>其实 Go 语言有现成的轮子来辅助你实现复杂的逻辑，让你的代码优美，低耦合，鲁棒性强，少bug。这个就是分布式队列Machinery</p>
+<p>本文深度结合源码讲解Machinery的使用方法和需要注意的坑位，让你从根上掌握Machinery的使用方法。</p>
+<p>优势<br>我们为什么要使用任务处理器？其实引入一个轮子之前想清楚他的优势是十分必要的，如果不充分了解他的优势那么很可能就为了用而用，很多场景可能使用它反而浪费了系统性能。我们就先来看下Machinery 的优势：</p>
+<p>Machinery 支持定义串行，并行 ，延迟，重试，定时等各种任务执行方式，并且你可以在定义好任务执行方式后对多个任务进行编排，调任务整先后完成顺序，他还对数据处理结果进行缓存，处理结果出错可以再次处理，增加程序的鲁棒性。访问结果可以直接查询缓存，提高响应速度：</p>
+<p>简化代码：其实简化代码是引入 Machinery 的最大原因，如果你只有几个定时任务要执行，不需要进行任务之间的调度，那其实大可不必，Machinery 将任务调度的逻辑高度简化，你不需要写复杂的任务之间的编排逻辑。这样就极大的简化了你的代码，减少些逻辑者的任务量，最重要的是减少bug，更减少排查问题的时间。<br>优化代码：Machinery 的支持任务编排方式及任务执行结果获取等处理不仅统一化而且在提升执行效率及处理代码耦合等方面都做的非常好。比如：将执行任务和获取结果进行了拆分，将执行任务和结果处理拆开，去掉业务逻辑耦合，使用权重队列去进行延时任务的处理，降低代码内存及cpu消耗等。<br>分布式支持：无需考虑分布式数据共享，存储及任务执行上锁等问题。<br>功能<br>Machinery一个第三方开源的基于分布式消息分发的异步任务队列，有着以下这些特性：</p>
+<p>任务重试机制<br>延迟任务机制<br>任务定时机制<br>任务回调机制<br>任务结果记录<br>支持Workflow模式：Chain，Group，Chord<br>多Brokers支持：Redis, AMQP, AWS SQS<br>多Backends支持：Redis, Memcache, AMQP, MongoDB<br>当前machinery在v1 stable版本，可以通过go get github.com&#x2F;RichardKnop&#x2F;machinery&#x2F;v1获取。</p>
+<p>架构设计<br>任务队列，简而言之就是一个由生产者控制消费者的生产消费模型，用户请求会生成任务，任务生产者不断的向队列中插入任务，同时，队列的处理器程序充当消费者不断的消费任务。基于这种框架设计思想，我们来看下machinery的简单设计结构图例：</p>
+<p>image-20220206235800341</p>
+<p>这个图我画的比较浅显。我们通过源码来深入了解一下。首先要弄清的就是几个主要的资源结构：</p>
+<p>Server ：业务主体，我们可以使用用server暴露的接口方法进行所有任务编排的操作。如果是简单的使用那么了解它就够了。</p>
+<p>Broker ：数据存储层接口，主要功能是将数据放入任务队列和取出，控制任务并发，延迟也在这层。</p>
+<p>Backend：数据存储层接口，主要用于更新获取任务执行结果，状态等。</p>
+<p>Woker：数据处理层结构，主要是操作 Sever， Broker，Backend 进行任务的获取，执行，处理执行状态及结果等。</p>
+<p>Task： 数据处理层，这一层包括Task，Signature，Group，Chain，Chord等结构，主要是处理任务编排的逻辑。</p>
+<p>接下来我们来详细说明：</p>
+<p>Server<br>Server 结构是Machinery的业务主体，其中包含了配置，任务逻辑，Broker，Backend其结构如下：</p>
+<p>&#x2F;&#x2F; Server is the main Machinery object and stores all configuration<br>&#x2F;&#x2F; All the tasks workers process are registered against the server<br>type Server struct {<br>config          *config.Config<br>registeredTasks map[string]interface{}<br>broker          brokersiface.Broker<br>backend         backendsiface.Backend<br>}</p>
+<p>可以说sever就包含了Machinery的所有要素。我们接下来一点点来看，作者是如果进行设计的。</p>
+<p>从server可以看出整个业务逻辑主体是包含两个对象的，broker和backend这个两个数据存储层接口，不通的底层存储应用会形成不同的存储接口。本篇文章中，我们将以redis来详细介绍，其他类型的存储介质，在实现细节上由于介质的API支持可能略有不同，但machinery具体暴露接口类似。</p>
+<p>config<br>&#x2F;&#x2F; Config holds all configuration for our program<br>type Config struct {<br>Broker          string       <code>yaml:&quot;broker&quot; envconfig:&quot;BROKER&quot;</code><br>DefaultQueue    string       <code>yaml:&quot;default_queue&quot; envconfig:&quot;DEFAULT_QUEUE&quot;</code><br>ResultBackend   string       <code>yaml:&quot;result_backend&quot; envconfig:&quot;RESULT_BACKEND&quot;</code><br>ResultsExpireIn int          <code>yaml:&quot;results_expire_in&quot; envconfig:&quot;RESULTS_EXPIRE_IN&quot;</code><br>AMQP            *AMQPConfig  <code>yaml:&quot;amqp&quot;</code><br>SQS             *SQSConfig   <code>yaml:&quot;sqs&quot;</code><br>Redis           *RedisConfig <code>yaml:&quot;redis&quot;</code><br>TLSConfig       *tls.Config<br>&#x2F;&#x2F; NoUnixSignals - when set disables signal handling in machinery<br>NoUnixSignals bool            <code>yaml:&quot;no_unix_signals&quot; envconfig:&quot;NO_UNIX_SIGNALS&quot;</code><br>DynamoDB      *DynamoDBConfig <code>yaml:&quot;dynamodb&quot;</code><br>}</p>
+<p>配置层其实主要是对存储底层应用的的配置，从配置也可以看出。如何设置存储应用的配置Machinery代码中写的很清楚。</p>
+<p>这里我想说下 DefaultQueue，我认为这个是比较重要且容易忽视的。Mechinery的主要设计思路其实是一个存储一个包含函数名称及参数的任务的队列。启动一个Worker来不停的进行任务队列的处理。如果你在启动worker的时候直接使用server对象的NewWorker方法，那么这个DefaultQueue其实就是存储的队列名称，比如我们用redis做底层的任务队列，那么这个redis队列的key就是你的DefaultQueue设置的参数。</p>
+<p>为什么这个重要呢，因为如果你没弄清这个queue的使用方式，所有的任务都用一个worker处理，那么所有的任务都会发到这个DefaultQueue 中，这将会极大的降低你任务编排逻辑设计多样性。比如某个任务优先级很高，你想它一触发就执行，那么只用一个队列将会无法实现。正确的方式是使用NewCustomQueueWorker指定一个新的queue。</p>
+<p>还有一个参数是Redis中的NormalTasksPollPeriod因为worker在执行函数时是执行的BLPOP命令这个参数就决定了没有任务触发时阻塞多久。</p>
+<p>Server 的接口方法<br>type Server interface {<br>GetBroker() brokersiface.Broker<br>GetConfig() *config.Config<br>RegisterTasks(namedTaskFuncs map[string]interface{}) error<br>SendTaskWithContext(ctx context.Context, signature *tasks.Signature) (*result.AsyncResult, error)<br>SendTask(signature *tasks.Signature) (*result.AsyncResult, error)<br>SendChainWithContext(ctx context.Context, chain *tasks.Chain) (*result.ChainAsyncResult, error)<br>SendChain(chain *tasks.Chain) (*result.ChainAsyncResult, error)<br>SendGroupWithContext(ctx context.Context, group *tasks.Group, sendConcurrency int) ([]*result.AsyncResult, error)<br>SendGroup(group *tasks.Group, sendConcurrency int) ([]*result.AsyncResult, error)<br>SendChordWithContext(ctx context.Context, chord *tasks.Chord, sendConcurrency int) (*result.ChordAsyncResult, error)<br>SendChord(chord *tasks.Chord, sendConcurrency int) (*result.ChordAsyncResult, error)<br>}<br>可以看到Server接口中暴露的方法都很实在，没有很华而不实的接口，前两个是获取自己的内部结构，后面的RegisterTasks的方法就是将自己任务编排所需要的操作方法都注册到Sever结构中的registeredTasks，在需要使用的时候Sever会在里面找。</p>
+<p>注册函数这块我觉得也是需要说明一下，因为注册的函数签名类型是有限制的。</p>
+<p>Sever 执行函数注册<br>&#x2F;&#x2F; RegisterTasks registers all tasks at once<br>func (server *Server) RegisterTasks(namedTaskFuncs map[string]interface{}) error {<br>for _, task :&#x3D; range namedTaskFuncs {<br>if err :&#x3D; tasks.ValidateTask(task); err !&#x3D; nil {<br>return err<br>}<br>}</p>
+<pre><code>for k, v := range namedTaskFuncs &#123;
+    server.registeredTasks.Store(k, v)
+&#125;
+
+server.broker.SetRegisteredTaskNames(server.GetRegisteredTaskNames())
+return nil
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; ValidateTask validates task function using reflection and makes sure<br>&#x2F;&#x2F; it has a proper signature. Functions used as tasks must return at least a<br>&#x2F;&#x2F; single value and the last return type must be error<br>func ValidateTask(task interface{}) error {<br>v :&#x3D; reflect.ValueOf(task)<br>t :&#x3D; v.Type()</p>
+<pre><code>// Task must be a function
+if t.Kind() != reflect.Func &#123;
+    return ErrTaskMustBeFunc
+&#125;
+
+// Task must return at least a single value
+if t.NumOut() &lt; 1 &#123;
+    return ErrTaskReturnsNoValue
+&#125;
+
+// Last return value must be error
+lastReturnType := t.Out(t.NumOut() - 1)
+errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+if !lastReturnType.Implements(errorInterface) &#123;
+    return ErrLastReturnValueMustBeError
+&#125;
+
+return nil
+</code></pre>
+<p>}<br>批量注册的任务函数的参数是一个map[string]interface{}结构我们注册进去的其实是一个唯一函数名称对应的一个函数，签名类型的限制可以在ValidateTask里看出，首先必须是一个函数类型，这个不用多说，其次函数签名至少有一个出参，且最后一个参数一定要实现error接口。</p>
+<p>后面的Send开头的方法其实就都是发送任务各种不同编排姿势的任务到Worker中执行。</p>
+<p>Sever 建立 Worker<br>&#x2F;&#x2F; NewWorker creates Worker instance<br>func (server *Server) NewWorker(consumerTag string, concurrency int) *Worker {<br>return &amp;Worker{<br>server:      server,<br>ConsumerTag: consumerTag,<br>Concurrency: concurrency,<br>Queue:       “”,<br>}<br>}</p>
+<p>&#x2F;&#x2F; NewCustomQueueWorker creates Worker instance with Custom Queue<br>func (server *Server) NewCustomQueueWorker(consumerTag string, concurrency int, queue string) *Worker {<br>return &amp;Worker{<br>server:      server,<br>ConsumerTag: consumerTag,<br>Concurrency: concurrency,<br>Queue:       queue,<br>}<br>}</p>
+<p>上面代码是建立worker的方法。NewWorker和NewCustomQueueWorker，这两个方法的区别我上面已经说过。那么我们下面就看下worker：</p>
+<p>Woker<br>Worker 是整个架构的执行主体，负责根据不同的任务及编排模式去获取任务并执行，最终输出结果并记录。了解了Worker和Server就可以自如的使用Machinery了，所以在介绍好worker后我会开始说这个包是如何用的。</p>
+<p>&#x2F;&#x2F; Worker represents a single worker process<br>type Worker struct {<br>server            *Server<br>ConsumerTag       string<br>Concurrency       int<br>Queue             string<br>errorHandler      func(err error)<br>preTaskHandler    func(*tasks.Signature)<br>postTaskHandler   func(*tasks.Signature)<br>preConsumeHandler func(*Worker) bool<br>}<br>Sever：可以看到在worker主体中有我们之前介绍完的Server结构，刚刚说了sever中记录了各种执行任务的方法和数据获取接口Broker，结构处理接口Backend，所以Worker其实是Sever派生出的一个结构，这样设计代码更形象更清晰。</p>
+<p>ConsumerTag：没有任何地方用到。</p>
+<p>Concurrency：启动一个 worker 执行任务的并发量最大值，如果小于1，那么会默认为当前cpu核数的两倍。</p>
+<p>Queue：任务触发队列存储 Key。</p>
+<p>errorHandler：返回err前的处理函数，见worker.LaunchAsync。这个参数很重要，需要注意： 执行任务的函数一旦出现错误，默认的处理方式是直接向errchan中发送消息，并退出 LaunchAsync 函数，最终干掉worker优雅退出，如果不想一有错误就干掉worker退出，那么就需要你自己去定义一个errorHandler，你可以单纯的打印一个日志也可以发送到日志服务，这样处理完错误它就会再次启动worker。当然你也可以在接受到错误后再次调用worker.LaunchAsync函数重新启动一个服务。</p>
+<p>preTaskHandler：执行任务前做的处理函数，见worker.Process。</p>
+<p>postTaskHandler：执行任务后做的处理函数，见worker.Process。</p>
+<p>preConsumeHandler：消费任务前的判断任务是否可消费逻辑，见broker.ConsumeOne。</p>
+<p>Worker 的功能方法<br>&#x2F;&#x2F; Launch starts a new worker process. The worker subscribes<br>&#x2F;&#x2F; to the default queue and processes incoming registered tasks<br>func (worker *Worker) Launch() error {}</p>
+<p>&#x2F;&#x2F; LaunchAsync is a non blocking version of Launch<br>func (worker *Worker) LaunchAsync(errorsChan chan&lt;- error) {}</p>
+<p>&#x2F;&#x2F; CustomQueue returns Custom Queue of the running worker process<br>func (worker *Worker) CustomQueue() string {}</p>
+<p>&#x2F;&#x2F; Quit tears down the running worker process<br>func (worker *Worker) Quit() {}</p>
+<p>&#x2F;&#x2F; Process handles received tasks and triggers success&#x2F;error callbacks<br>func (worker *Worker) Process(signature *tasks.Signature) error {}</p>
+<p>&#x2F;&#x2F; retryTask decrements RetryCount counter and republishes the task to the queue<br>func (worker *Worker) taskRetry(signature *tasks.Signature) error {}</p>
+<p>&#x2F;&#x2F; taskRetryIn republishes the task to the queue with ETA of now + retryIn.Seconds()<br>func (worker *Worker) retryTaskIn(signature *tasks.Signature, retryIn time.Duration) error {}</p>
+<p>&#x2F;&#x2F; taskSucceeded updates the task state and triggers success callbacks or a<br>&#x2F;&#x2F; chord callback if this was the last task of a group with a chord callback<br>func (worker *Worker) taskSucceeded(signature *tasks.Signature, taskResults []*tasks.TaskResult) error {}</p>
+<p>&#x2F;&#x2F; taskFailed updates the task state and triggers error callbacks<br>func (worker *Worker) taskFailed(signature *tasks.Signature, taskErr error) error {}</p>
+<p>&#x2F;&#x2F; Returns true if the worker uses AMQP backend<br>func (worker *Worker) hasAMQPBackend() bool {}</p>
+<p>&#x2F;&#x2F; SetErrorHandler sets a custom error handler for task errors<br>&#x2F;&#x2F; A default behavior is just to log the error after all the retry attempts fail<br>func (worker *Worker) SetErrorHandler(handler func(err error)) {}</p>
+<p>&#x2F;&#x2F;SetPreTaskHandler sets a custom handler func before a job is started<br>func (worker *Worker) SetPreTaskHandler(handler func(*tasks.Signature)) {}</p>
+<p>&#x2F;&#x2F;SetPostTaskHandler sets a custom handler for the end of a job<br>func (worker *Worker) SetPostTaskHandler(handler func(*tasks.Signature)) {}</p>
+<p>&#x2F;&#x2F;SetPreConsumeHandler sets a custom handler for the end of a job<br>func (worker *Worker) SetPreConsumeHandler(handler func(*Worker) bool) {}</p>
+<p>&#x2F;&#x2F;GetServer returns server<br>func (worker *Worker) GetServer() *Server {}<br>func (worker *Worker) PreConsumeHandler() bool {}<br>func RedactURL(urlString string) string {}<br>worker 的这些方法的核心就一个就是LaunchAsync，这个方法是启动一个异步执行的worker。使用这个方法启动的worker就开始了不停处理任务之旅。</p>
+<p>我们主要看一下如何启动一个 worker。</p>
+<p>Worker 启动<br>&#x2F;&#x2F; Launch starts a new worker process. The worker subscribes<br>&#x2F;&#x2F; to the default queue and processes incoming registered tasks<br>func (worker *Worker) Launch() error {<br>errorsChan :&#x3D; make(chan error)</p>
+<pre><code>worker.LaunchAsync(errorsChan)
+
+return &lt;-errorsChan
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; LaunchAsync is a non blocking version of Launch<br>func (worker *Worker) LaunchAsync(errorsChan chan&lt;- error) {<br>cnf :&#x3D; worker.server.GetConfig()<br>broker :&#x3D; worker.server.GetBroker()</p>
+<pre><code>// Log some useful information about worker configuration
+log.INFO.Printf(&quot;Launching a worker with the following settings:&quot;)
+log.INFO.Printf(&quot;- Broker: %s&quot;, RedactURL(cnf.Broker))
+if worker.Queue == &quot;&quot; &#123;
+    log.INFO.Printf(&quot;- DefaultQueue: %s&quot;, cnf.DefaultQueue)
+&#125; else &#123;
+    log.INFO.Printf(&quot;- CustomQueue: %s&quot;, worker.Queue)
+&#125;
+log.INFO.Printf(&quot;- ResultBackend: %s&quot;, RedactURL(cnf.ResultBackend))
+if cnf.AMQP != nil &#123;
+    log.INFO.Printf(&quot;- AMQP: %s&quot;, cnf.AMQP.Exchange)
+    log.INFO.Printf(&quot;  - Exchange: %s&quot;, cnf.AMQP.Exchange)
+    log.INFO.Printf(&quot;  - ExchangeType: %s&quot;, cnf.AMQP.ExchangeType)
+    log.INFO.Printf(&quot;  - BindingKey: %s&quot;, cnf.AMQP.BindingKey)
+    log.INFO.Printf(&quot;  - PrefetchCount: %d&quot;, cnf.AMQP.PrefetchCount)
+&#125;
+
+var signalWG sync.WaitGroup
+// Goroutine to start broker consumption and handle retries when broker connection dies
+go func() &#123;
+    for &#123;
+        retry, err := broker.StartConsuming(worker.ConsumerTag, worker.Concurrency, worker)
+
+        if retry &#123;
+            if worker.errorHandler != nil &#123;
+                worker.errorHandler(err)
+            &#125; else &#123;
+                log.WARNING.Printf(&quot;Broker failed with error: %s&quot;, err)
+            &#125;
+        &#125; else &#123;
+            signalWG.Wait()
+            errorsChan &lt;- err // stop the goroutine
+            return
+        &#125;
+    &#125;
+&#125;()
+if !cnf.NoUnixSignals &#123;
+    sig := make(chan os.Signal, 1)
+    signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+    var signalsReceived uint
+
+    // Goroutine Handle SIGINT and SIGTERM signals
+    go func() &#123;
+        for s := range sig &#123;
+            log.WARNING.Printf(&quot;Signal received: %v&quot;, s)
+            signalsReceived++
+
+            if signalsReceived &lt; 2 &#123;
+                // After first Ctrl+C start quitting the worker gracefully
+                log.WARNING.Print(&quot;Waiting for running tasks to finish before shutting down&quot;)
+                signalWG.Add(1)
+                go func() &#123;
+                    worker.Quit()
+                    errorsChan &lt;- ErrWorkerQuitGracefully
+                    signalWG.Done()
+                &#125;()
+            &#125; else &#123;
+                // Abort the program when user hits Ctrl+C second time in a row
+                errorsChan &lt;- ErrWorkerQuitAbruptly
+            &#125;
+        &#125;
+    &#125;()
+&#125;
+</code></pre>
+<p>}</p>
+<p>worker启动方法的逻辑就是开一个go程维护一个broker消费者，用errchan阻塞住，维护消费者的同时监听一个系统的信号管道做优雅退出，一个有意思的设计是一旦启动按一次Ctrl+C是优雅结束，两次Ctrl+C可以强制结束。</p>
+<p>该逻辑中核心方法就是 broker.StartConsuming，broker的StartConsuming方法其实就是不断获取当下该执行的任务然后调用worker的process方法来执行，所以我们这里先看process方法：</p>
+<p>&#x2F;&#x2F; Process handles received tasks and triggers success&#x2F;error callbacks<br>func (worker *Worker) Process(signature *tasks.Signature) error {<br>&#x2F;&#x2F; If the task is not registered with this worker, do not continue<br>&#x2F;&#x2F; but only return nil as we do not want to restart the worker process<br>if !worker.server.IsTaskRegistered(signature.Name) {<br>return nil<br>}</p>
+<pre><code>taskFunc, err := worker.server.GetRegisteredTask(signature.Name)
+if err != nil &#123;
+    return nil
+&#125;
+
+// Update task state to RECEIVED
+if err = worker.server.GetBackend().SetStateReceived(signature); err != nil &#123;
+    return fmt.Errorf(&quot;Set state to &#39;received&#39; for task %s returned error: %s&quot;, signature.UUID, err)
+&#125;
+
+// Prepare task for processing
+task, err := tasks.NewWithSignature(taskFunc, signature)
+// if this failed, it means the task is malformed, probably has invalid
+// signature, go directly to task failed without checking whether to retry
+if err != nil &#123;
+    worker.taskFailed(signature, err)
+    return err
+&#125;
+
+// try to extract trace span from headers and add it to the function context
+// so it can be used inside the function if it has context.Context as the first
+// argument. Start a new span if it isn&#39;t found.
+taskSpan := tracing.StartSpanFromHeaders(signature.Headers, signature.Name)
+tracing.AnnotateSpanWithSignatureInfo(taskSpan, signature)
+task.Context = opentracing.ContextWithSpan(task.Context, taskSpan)
+
+// Update task state to STARTED
+if err = worker.server.GetBackend().SetStateStarted(signature); err != nil &#123;
+    return fmt.Errorf(&quot;Set state to &#39;started&#39; for task %s returned error: %s&quot;, signature.UUID, err)
+&#125;
+
+//Run handler before the task is called
+if worker.preTaskHandler != nil &#123;
+    worker.preTaskHandler(signature)
+&#125;
+
+//Defer run handler for the end of the task
+if worker.postTaskHandler != nil &#123;
+    defer worker.postTaskHandler(signature)
+&#125;
+
+// Call the task
+results, err := task.Call()
+if err != nil &#123;
+    // If a tasks.ErrRetryTaskLater was returned from the task,
+    // retry the task after specified duration
+    retriableErr, ok := interface&#123;&#125;(err).(tasks.ErrRetryTaskLater)
+    if ok &#123;
+        return worker.retryTaskIn(signature, retriableErr.RetryIn())
+    &#125;
+
+    // Otherwise, execute default retry logic based on signature.RetryCount
+    // and signature.RetryTimeout values
+    if signature.RetryCount &gt; 0 &#123;
+        return worker.taskRetry(signature)
+    &#125;
+
+    return worker.taskFailed(signature, err)
+&#125;
+
+return worker.taskSucceeded(signature, results)
+</code></pre>
+<p>}</p>
+<p>逻辑很简单，就是从sever中取出对应的任务执行方法，然后进行处理，处理过程总根据处理任务的结果和报错调用taskfailed和t taskSucceeded来使用backend接口进行记录。</p>
+<p>这里想说的一个地方是retry机制的设计，这里触发任务失败重试很灵活，你可以在触发结构signature中直接设置重试次数及时间，值得说的一点是这里设置的重试时间并不是每次执行都会进行这个时间的等待而是有一个斐波那契数列的重试用时延长机制，避免某个错误的任务一直不停重试造成CPU浪费。在设计中你还可以在任务函数中需要错误重试的地方实现他的ErrRetryTaskLater结构以实现在某个地方出错时才重试的编排方式。</p>
+<p>这时候我们的思路还是串联不起来的，因为我们知道了新建Sever，注册任务函数，新建worker来执行，最后在需要调度任务时使用Sever来触发。但是怎么传参？又如何编排？其实触发函数刚刚说过就是Sever暴露出来的Send开头的接口，你会发现Send开头有几个不同的Send方法，这里就来说明触发的任务函数及编排任务函数的方法：</p>
+<p>触发任务的参数有signature，group，chain，chord几个结构，其中signature是基础，用于触发单个任务</p>
+<p>Signature<br>&#x2F;&#x2F; Signature represents a single task invocation<br>type Signature struct {<br>UUID           string<br>Name           string<br>RoutingKey     string<br>ETA            *time.Time<br>GroupUUID      string<br>GroupTaskCount int<br>Args           []Arg<br>Headers        Headers<br>Priority       uint8<br>Immutable      bool<br>RetryCount     int<br>RetryTimeout   int<br>OnSuccess      []*Signature<br>OnError        []*Signature<br>ChordCallback  *Signature<br>&#x2F;&#x2F;MessageGroupId for Broker, e.g. SQS<br>BrokerMessageGroupId string<br>&#x2F;&#x2F;ReceiptHandle of SQS Message<br>SQSReceiptHandle string<br>&#x2F;&#x2F; StopTaskDeletionOnError used with sqs when we want to send failed messages to dlq,<br>&#x2F;&#x2F; and don’t want machinery to delete from source queue<br>StopTaskDeletionOnError bool<br>&#x2F;&#x2F; IgnoreWhenTaskNotRegistered auto removes the request when there is no handeler available<br>&#x2F;&#x2F; When this is true a task with no handler will be ignored and not placed back in the queue<br>IgnoreWhenTaskNotRegistered bool<br>}<br>signature就是单个任务的触发开关同时也是参数传递和结果记录的地方，他与整个任务的生命周期都有关。</p>
+<p>UUID：是它的唯一标识，从下面的新建 Signature 的方法中可以看出UUID是轮子内部生成的。<br>&#x2F;&#x2F; NewSignature creates a new task signature<br>func NewSignature(name string, args []Arg) (*Signature, error) {<br>signatureID :&#x3D; uuid.New().String()<br>return &amp;Signature{<br>UUID: fmt.Sprintf(“task_%v”, signatureID),<br>Name: name,<br>Args: args,<br>}, nil<br>}<br>Name：如果你仔细看了上文，你应该知道这个Name参数是什么，他就是我们之前注册在Sever中的处理函数名称。在触发任务时Worker使用Name来获取任务执行函数。<br>RoutingKey：这个参数需要重点注意，他其实就是之前说过的任务队列的底层 key(queue)，当你用使用NewCustomQueueWorker创建多个消耗不同queue的任务执行者时，指定RoutingKey 为对应的queue，那么就相当于将任务触发Signature存储于该队列，等待执行。所以RoutingKey 参数其实就是对应的queue，如果没有指定那么他就是初次在config中设置的DefaultQueue。下面的代码即是broker在存储signature前对RoutingKey的处理。<br>&#x2F;&#x2F; AdjustRoutingKey makes sure the routing key is correct.<br>&#x2F;&#x2F; If the routing key is an empty string:<br>&#x2F;&#x2F; a) set it to binding key for direct exchange type<br>&#x2F;&#x2F; b) set it to default queue name<br>func (b *Broker) AdjustRoutingKey(s *tasks.Signature) {<br>if s.RoutingKey !&#x3D; “” {<br>return<br>}</p>
+<pre><code>s.RoutingKey = b.GetConfig().DefaultQueue
+</code></pre>
+<p>}<br>ETA：该参数是指定任务执行时间，在建立延迟任务触发和任务重试中都会用到，其中要进行任务延迟编排那你需要自己设定任务执行时间，任务重试延迟则是轮子自己做的，它会新建一个带有延迟触发时间的signature，并存入RoutingKey。<br>GroupUUID和GroupCount：是该任务跟随的任务组ID，和任务组任务总数。<br>Immutable：这个参数是决定同步任务是否需要上个任务的结果作为参数的。默认为false，是把上一个函数的处理结果作为下一个的参数。<br>IgnoreWhenTaskNotRegistered：这个参数决定是否在触发任务的执行函数未注册时在把任务signature塞回队尾。如果是true将直接忽略这个触发，如果是false会把任务塞回到队尾。<br>OnSuccess：成功后的回调触发。<br>OnError：失败后的回调。<br>ChordCallback：调用链完成后的回调。<br>Args：这个参数可以说是最为重要的，这就是触发执行任务函数的入参。我们先看下它的结构<br>&#x2F;&#x2F; Arg represents a single argument passed to invocation fo a task<br>type Arg struct {<br>Name  string      <code>bson:&quot;name&quot;</code><br>Type  string      <code>bson:&quot;type&quot;</code><br>Value interface{} <code>bson:&quot;value&quot;</code><br>}</p>
+<p>其中Name参数并没用什么卵用，可能是作者一开始想用参数名称来进行对位匹配，后面发现很难实现吧。Type就是参数的类型，Value就是参数的值。</p>
+<p>这里想要了解整个执行函数逻辑是什么样的我们就必须去了解另一个结构：Task，这个结构我们在上面worker的process方法中出现过，其实在worker的process函数中就是通过从broker中获取的signature触发结构以及从sever中获取的任务执行函数建立了一个Task结构，并使用task.call() 进行了函数执行。是不是瞬间通透了。我们下面看下Task及其新建的源码：</p>
+<p>Task<br>&#x2F;&#x2F; Task wraps a signature and methods used to reflect task arguments and<br>&#x2F;&#x2F; return values after invoking the task<br>type Task struct {<br>TaskFunc   reflect.Value<br>UseContext bool<br>Context    context.Context<br>Args       []reflect.Value<br>}<br>TaskFunc 是我们注册在Sever中的执行函数的反射值Value。Args 就是对signature中的Args进行处理的到切片中每个value的反射值。</p>
+<p>新建Task：</p>
+<p>&#x2F;&#x2F; NewWithSignature is the same as New but injects the signature<br>func NewWithSignature(taskFunc interface{}, signature *Signature) (*Task, error) {<br>args :&#x3D; signature.Args<br>ctx :&#x3D; context.Background()<br>ctx &#x3D; context.WithValue(ctx, signatureCtx, signature)<br>task :&#x3D; &amp;Task{<br>TaskFunc: reflect.ValueOf(taskFunc),<br>Context:  ctx,<br>}</p>
+<pre><code>taskFuncType := reflect.TypeOf(taskFunc)
+if taskFuncType.NumIn() &gt; 0 &#123;
+    arg0Type := taskFuncType.In(0)
+    if IsContextType(arg0Type) &#123;
+        task.UseContext = true
+    &#125;
+&#125;
+
+if err := task.ReflectArgs(args); err != nil &#123;
+    return nil, fmt.Errorf(&quot;Reflect task args error: %s&quot;, err)
+&#125;
+
+return task, nil
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; New tries to use reflection to convert the function and arguments<br>&#x2F;&#x2F; into a reflect.Value and prepare it for invocation<br>func New(taskFunc interface{}, args []Arg) (*Task, error) {<br>task :&#x3D; &amp;Task{<br>TaskFunc: reflect.ValueOf(taskFunc),<br>Context:  context.Background(),<br>}</p>
+<pre><code>taskFuncType := reflect.TypeOf(taskFunc)
+if taskFuncType.NumIn() &gt; 0 &#123;
+    arg0Type := taskFuncType.In(0)
+    if IsContextType(arg0Type) &#123;
+        task.UseContext = true
+    &#125;
+&#125;
+
+if err := task.ReflectArgs(args); err != nil &#123;
+    return nil, fmt.Errorf(&quot;Reflect task args error: %s&quot;, err)
+&#125;
+
+return task, nil
+</code></pre>
+<p>}</p>
+<p>UseContext 参数就是看第一个函数入参是否为context类型。</p>
+<p>建立Task后使用 task.ReflectArgs()方法来进行参数列表的值反射：</p>
+<p>Args 通用化处理<br>&#x2F;&#x2F; ReflectArgs converts []TaskArg to []reflect.Value<br>func (t *Task) ReflectArgs(args []Arg) error {<br>argValues :&#x3D; make([]reflect.Value, len(args))</p>
+<pre><code>for i, arg := range args &#123;
+    argValue, err := ReflectValue(arg.Type, arg.Value)
+    if err != nil &#123;
+        return err
+    &#125;
+    argValues[i] = argValue
+&#125;
+
+t.Args = argValues
+return nil
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; ReflectValue converts interface{} to reflect.Value based on string type<br>func ReflectValue(valueType string, value interface{}) (reflect.Value, error) {<br>if strings.HasPrefix(valueType, “[]”) {<br>return reflectValues(valueType, value)<br>}</p>
+<pre><code>return reflectValue(valueType, value)
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; reflectValue converts interface{} to reflect.Value based on string type<br>&#x2F;&#x2F; representing a base type (not a slice)<br>func reflectValue(valueType string, value interface{}) (reflect.Value, error) {<br>theType, ok :&#x3D; typesMap[valueType]<br>if !ok {<br>return reflect.Value{}, NewErrUnsupportedType(valueType)<br>}<br>theValue :&#x3D; reflect.New(theType)</p>
+<pre><code>// Booleans
+if theType.String() == &quot;bool&quot; &#123;
+    boolValue, err := getBoolValue(theType.String(), value)
+    if err != nil &#123;
+        return reflect.Value&#123;&#125;, err
+    &#125;
+
+    theValue.Elem().SetBool(boolValue)
+    return theValue.Elem(), nil
+&#125;
+
+// Integers
+if strings.HasPrefix(theType.String(), &quot;int&quot;) &#123;
+    intValue, err := getIntValue(theType.String(), value)
+    if err != nil &#123;
+        return reflect.Value&#123;&#125;, err
+    &#125;
+
+    theValue.Elem().SetInt(intValue)
+    return theValue.Elem(), err
+&#125;
+
+// Unsigned integers
+if strings.HasPrefix(theType.String(), &quot;uint&quot;) &#123;
+    uintValue, err := getUintValue(theType.String(), value)
+    if err != nil &#123;
+        return reflect.Value&#123;&#125;, err
+    &#125;
+
+    theValue.Elem().SetUint(uintValue)
+    return theValue.Elem(), err
+&#125;
+
+// Floating point numbers
+if strings.HasPrefix(theType.String(), &quot;float&quot;) &#123;
+    floatValue, err := getFloatValue(theType.String(), value)
+    if err != nil &#123;
+        return reflect.Value&#123;&#125;, err
+    &#125;
+
+    theValue.Elem().SetFloat(floatValue)
+    return theValue.Elem(), err
+&#125;
+
+// Strings
+if theType.String() == &quot;string&quot; &#123;
+    stringValue, err := getStringValue(theType.String(), value)
+    if err != nil &#123;
+        return reflect.Value&#123;&#125;, err
+    &#125;
+
+    theValue.Elem().SetString(stringValue)
+    return theValue.Elem(), nil
+&#125;
+
+return reflect.Value&#123;&#125;, NewErrUnsupportedType(valueType)
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; reflectValues converts interface{} to reflect.Value based on string type<br>&#x2F;&#x2F; representing a slice of values<br>func reflectValues(valueType string, value interface{}) (reflect.Value, error) {<br>theType, ok :&#x3D; typesMap[valueType]<br>if !ok {<br>return reflect.Value{}, NewErrUnsupportedType(valueType)<br>}</p>
+<pre><code>// For NULL we return an empty slice
+if value == nil &#123;
+    return reflect.MakeSlice(theType, 0, 0), nil
+&#125;
+
+var theValue reflect.Value
+
+// Booleans
+if theType.String() == &quot;[]bool&quot; &#123;
+    bools := reflect.ValueOf(value)
+
+    theValue = reflect.MakeSlice(theType, bools.Len(), bools.Len())
+    for i := 0; i &lt; bools.Len(); i++ &#123;
+        boolValue, err := getBoolValue(strings.Split(theType.String(), &quot;[]&quot;)[1], bools.Index(i).Interface())
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+
+        theValue.Index(i).SetBool(boolValue)
+    &#125;
+
+    return theValue, nil
+&#125;
+
+// Integers
+if strings.HasPrefix(theType.String(), &quot;[]int&quot;) &#123;
+    ints := reflect.ValueOf(value)
+
+    theValue = reflect.MakeSlice(theType, ints.Len(), ints.Len())
+    for i := 0; i &lt; ints.Len(); i++ &#123;
+        intValue, err := getIntValue(strings.Split(theType.String(), &quot;[]&quot;)[1], ints.Index(i).Interface())
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+
+        theValue.Index(i).SetInt(intValue)
+    &#125;
+
+    return theValue, nil
+&#125;
+
+// Unsigned integers
+if strings.HasPrefix(theType.String(), &quot;[]uint&quot;) || theType.String() == &quot;[]byte&quot; &#123;
+
+    // Decode the base64 string if the value type is []uint8 or it&#39;s alias []byte
+    // See: https://golang.org/pkg/encoding/json/#Marshal
+    // &gt; Array and slice values encode as JSON arrays, except that []byte encodes as a base64-encoded string
+    if reflect.TypeOf(value).String() == &quot;string&quot; &#123;
+        output, err := base64.StdEncoding.DecodeString(value.(string))
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+        value = output
+    &#125;
+
+    uints := reflect.ValueOf(value)
+
+    theValue = reflect.MakeSlice(theType, uints.Len(), uints.Len())
+    for i := 0; i &lt; uints.Len(); i++ &#123;
+        uintValue, err := getUintValue(strings.Split(theType.String(), &quot;[]&quot;)[1], uints.Index(i).Interface())
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+
+        theValue.Index(i).SetUint(uintValue)
+    &#125;
+
+    return theValue, nil
+&#125;
+
+// Floating point numbers
+if strings.HasPrefix(theType.String(), &quot;[]float&quot;) &#123;
+    floats := reflect.ValueOf(value)
+
+    theValue = reflect.MakeSlice(theType, floats.Len(), floats.Len())
+    for i := 0; i &lt; floats.Len(); i++ &#123;
+        floatValue, err := getFloatValue(strings.Split(theType.String(), &quot;[]&quot;)[1], floats.Index(i).Interface())
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+
+        theValue.Index(i).SetFloat(floatValue)
+    &#125;
+
+    return theValue, nil
+&#125;
+
+// Strings
+if theType.String() == &quot;[]string&quot; &#123;
+    strs := reflect.ValueOf(value)
+
+    theValue = reflect.MakeSlice(theType, strs.Len(), strs.Len())
+    for i := 0; i &lt; strs.Len(); i++ &#123;
+        strValue, err := getStringValue(strings.Split(theType.String(), &quot;[]&quot;)[1], strs.Index(i).Interface())
+        if err != nil &#123;
+            return reflect.Value&#123;&#125;, err
+        &#125;
+
+        theValue.Index(i).SetString(strValue)
+    &#125;
+
+    return theValue, nil
+&#125;
+
+return reflect.Value&#123;&#125;, NewErrUnsupportedType(valueType)
+</code></pre>
+<p>}</p>
+<p>从上面的方法可以看出，ReflectValue根据Arg结构的类型来新建一个类型相同的储值空间并将Arg结构的值拷贝进去。</p>
+<p>需要注意的的是传入参数其实是经过深度拷贝之后再进行函数执行的，这样处理主要是为之后失败重试，或是执行函数未注册再次塞回等处理考虑。所以不要想去传入指针再回收结果。</p>
+<p>参数类型如何限制从源码中也看的很清晰，必须要存在于下面的typesMap才可以设置：</p>
+<p>Args 类型限制<br>typesMap &#x3D; map[string]reflect.Type{<br>&#x2F;&#x2F; base types<br>“bool”:    reflect.TypeOf(true),<br>“int”:     reflect.TypeOf(int(1)),<br>“int8”:    reflect.TypeOf(int8(1)),<br>“int16”:   reflect.TypeOf(int16(1)),<br>“int32”:   reflect.TypeOf(int32(1)),<br>“int64”:   reflect.TypeOf(int64(1)),<br>“uint”:    reflect.TypeOf(uint(1)),<br>“uint8”:   reflect.TypeOf(uint8(1)),<br>“uint16”:  reflect.TypeOf(uint16(1)),<br>“uint32”:  reflect.TypeOf(uint32(1)),<br>“uint64”:  reflect.TypeOf(uint64(1)),<br>“float32”: reflect.TypeOf(float32(0.5)),<br>“float64”: reflect.TypeOf(float64(0.5)),<br>“string”:  reflect.TypeOf(string(“”)),<br>&#x2F;&#x2F; slices<br>“[]bool”:    reflect.TypeOf(make([]bool, 0)),<br>“[]int”:     reflect.TypeOf(make([]int, 0)),<br>“[]int8”:    reflect.TypeOf(make([]int8, 0)),<br>“[]int16”:   reflect.TypeOf(make([]int16, 0)),<br>“[]int32”:   reflect.TypeOf(make([]int32, 0)),<br>“[]int64”:   reflect.TypeOf(make([]int64, 0)),<br>“[]uint”:    reflect.TypeOf(make([]uint, 0)),<br>“[]uint8”:   reflect.TypeOf(make([]uint8, 0)),<br>“[]uint16”:  reflect.TypeOf(make([]uint16, 0)),<br>“[]uint32”:  reflect.TypeOf(make([]uint32, 0)),<br>“[]uint64”:  reflect.TypeOf(make([]uint64, 0)),<br>“[]float32”: reflect.TypeOf(make([]float32, 0)),<br>“[]float64”: reflect.TypeOf(make([]float64, 0)),<br>“[]byte”:    reflect.TypeOf(make([]byte, 0)),<br>“[]string”:  reflect.TypeOf([]string{“”}),<br>}<br>Task 执行函数调用<br>传入参数顺序是严格按照Args列表的下标顺序的，针对这点我们来看下任务执行的函数task.Call()</p>
+<p>&#x2F;&#x2F; Call attempts to call the task with the supplied arguments.<br>&#x2F;&#x2F;<br>&#x2F;&#x2F; <code>err</code> is set in the return value in two cases:<br>&#x2F;&#x2F; 1. The reflected function invocation panics (e.g. due to a mismatched<br>&#x2F;&#x2F;    argument list).<br>&#x2F;&#x2F; 2. The task func itself returns a non-nil error.<br>func (t *Task) Call() (taskResults []*TaskResult, err error) {<br>&#x2F;&#x2F; retrieve the span from the task’s context and finish it as soon as this function returns<br>if span :&#x3D; opentracing.SpanFromContext(t.Context); span !&#x3D; nil {<br>defer span.Finish()<br>}</p>
+<pre><code>defer func() &#123;
+    // Recover from panic and set err.
+    if e := recover(); e != nil &#123;
+        switch e := e.(type) &#123;
+        default:
+            err = ErrTaskPanicked
+        case error:
+            err = e
+        case string:
+            err = errors.New(e)
+        &#125;
+
+        // mark the span as failed and dump the error and stack trace to the span
+        if span := opentracing.SpanFromContext(t.Context); span != nil &#123;
+            opentracing_ext.Error.Set(span, true)
+            span.LogFields(
+                opentracing_log.Error(err),
+                opentracing_log.Object(&quot;stack&quot;, string(debug.Stack())),
+            )
+        &#125;
+
+        // Print stack trace
+        log.ERROR.Printf(&quot;%v stack: %s&quot;, err, debug.Stack())
+    &#125;
+&#125;()
+
+args := t.Args
+
+if t.UseContext &#123;
+    ctxValue := reflect.ValueOf(t.Context)
+    args = append([]reflect.Value&#123;ctxValue&#125;, args...)
+&#125;
+
+// Invoke the task
+results := t.TaskFunc.Call(args)
+
+// Task must return at least a value
+if len(results) == 0 &#123;
+    return nil, ErrTaskReturnsNoValue
+&#125;
+
+// Last returned value
+lastResult := results[len(results)-1]
+
+// If the last returned value is not nil, it has to be of error type, if that
+// is not the case, return error message, otherwise propagate the task error
+// to the caller
+if !lastResult.IsNil() &#123;
+    // If the result implements Retriable interface, return instance of Retriable
+    retriableErrorInterface := reflect.TypeOf((*Retriable)(nil)).Elem()
+    if lastResult.Type().Implements(retriableErrorInterface) &#123;
+        return nil, lastResult.Interface().(ErrRetryTaskLater)
+    &#125;
+
+    // Otherwise, check that the result implements the standard error interface,
+    // if not, return ErrLastReturnValueMustBeError error
+    errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+    if !lastResult.Type().Implements(errorInterface) &#123;
+        return nil, ErrLastReturnValueMustBeError
+    &#125;
+
+    // Return the standard error
+    return nil, lastResult.Interface().(error)
+&#125;
+
+// Convert reflect values to task results
+taskResults = make([]*TaskResult, len(results)-1)
+for i := 0; i &lt; len(results)-1; i++ &#123;
+    val := results[i].Interface()
+    typeStr := reflect.TypeOf(val).String()
+    taskResults[i] = &amp;TaskResult&#123;
+        Type:  typeStr,
+        Value: val,
+    &#125;
+&#125;
+
+return taskResults, err
+</code></pre>
+<p>}</p>
+<p>好了我相信介绍了这么多你肯定已经打通了Machinery的整个逻辑，让我们来看怎么使用</p>
+<p>使用姿势<br>通过上文架构和源码的梳理相信大家都改大致明白该如何使用。接下来就看一个简单的使用用例，看下和你想的一不一样。介绍完用例我们再来看数据存储层的Broker和Backend。</p>
+<p>启动服务</p>
+<p>func TestRedisRedisWorkerQuitRaceCondition(t *testing.T) {<br>repeat :&#x3D; 3<br>for i :&#x3D; 0; i &lt; repeat; i++ {<br>redisURL :&#x3D; os.Getenv(“REDIS_URL”)<br>if redisURL &#x3D;&#x3D; “” {<br>t.Skip(“REDIS_URL is not defined”)<br>}</p>
+<pre><code>    // Redis broker, Redis result backend
+    cnf := &amp;config.Config&#123;
+        Broker:        fmt.Sprintf(&quot;redis://%v&quot;, redisURL),
+        DefaultQueue:  &quot;test_queue&quot;,
+        ResultBackend: fmt.Sprintf(&quot;redis://%v&quot;, redisURL),
+        Lock:          fmt.Sprintf(&quot;redis://%v&quot;, redisURL),
+    &#125;
+
+    server, _ := machinery.NewServer(cnf)
+    worker := server.NewWorker(&quot;test_worker&quot;, 0)
+
+    errorsChan := make(chan error, 1)
+
+    // Check Quit() immediately after LaunchAsync() will shutdown gracefully
+    // and not panic on close(b.stopChan)
+    worker.LaunchAsync(errorsChan)
+    worker.Quit()
+
+    if err := &lt;-errorsChan; err != nil &#123;
+        t.Errorf(&quot;Error shutting down machinery worker gracefully %+v&quot;, err)
+        continue
+    &#125;
+&#125;
+</code></pre>
+<p>}<br>我们先看一个官方的测试用例，先新建一个Sever，然后启动一个worker，这里启动用的是worker.LaunchAsync方法，也就是同一用DefaultQueue来做底层任务队列的存储key。</p>
+<p>一旦 errorsChan 有错误接收到就再次重试。这是一个简单的使用用例，我介绍他的原因就是他会在出错后次重启，但只有三次，我们如果想要出错一直重启就不用限制次数，或者设置worker的ErrHandler参数。</p>
+<p>任务触发及结果获取<br>以上我们已经得到了Machinery的操作实体sever，我们就可以使用其send方法来触发任务。然后获取结果：</p>
+<p>func testSendTask(server Server, t *testing.T) {<br>addTask :&#x3D; newAddTask(1, 1)</p>
+<pre><code>asyncResult, err := server.SendTask(addTask)
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+results, err := asyncResult.Get(time.Duration(time.Millisecond * 5))
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+if len(results) != 1 &#123;
+    t.Errorf(&quot;Number of results returned = %d. Wanted %d&quot;, len(results), 1)
+&#125;
+
+if results[0].Interface() != int64(2) &#123;
+    t.Errorf(
+        &quot;result = %v(%v), want int64(2)&quot;,
+        results[0].Type().String(),
+        results[0].Interface(),
+    )
+&#125;
+
+sumTask := newSumTask([]int64&#123;1, 2&#125;)
+asyncResult, err = server.SendTask(sumTask)
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+results, err = asyncResult.Get(time.Duration(time.Millisecond * 5))
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+if len(results) != 1 &#123;
+    t.Errorf(&quot;Number of results returned = %d. Wanted %d&quot;, len(results), 1)
+&#125;
+
+if results[0].Interface() != int64(3) &#123;
+    t.Errorf(
+        &quot;result = %v(%v), want int64(3)&quot;,
+        results[0].Type().String(),
+        results[0].Interface(),
+    )
+&#125;
+</code></pre>
+<p>}<br>这个官方用例告诉我们如何去触发一个单任务，并进行结果的获取。这个结果结构会在Backend中说到。</p>
+<p>数据存储处理<br>通过上面的描述我相信整个轮子的设计和使用以及要注意的地方都很清楚了，下面我们来更近一步看他是如何进行任务队列及结果状态存储的。</p>
+<p>刚刚已经提到了两个非常重要的角色就是broker和backend。一个用于任务队列的存取，一个用于任务结果及状态的处理。</p>
+<p>Broker<br>Broker是一个作者设计的一个接口，用于存取任务触发的队列，不同的底层存储服务对应着不通的功能实现，我们只看redis。</p>
+<p>Broker 的创建<br>新建Sever时会通过配置来建立不同的Broker</p>
+<p>&#x2F;&#x2F; BrokerFactory creates a new object of iface.Broker<br>&#x2F;&#x2F; Currently only AMQP&#x2F;S broker is supported<br>func BrokerFactory(cnf *config.Config) (brokeriface.Broker, error) {<br>if strings.HasPrefix(cnf.Broker, “amqp:&#x2F;&#x2F;“) {<br>return amqpbroker.New(cnf), nil<br>}</p>
+<pre><code>if strings.HasPrefix(cnf.Broker, &quot;amqps://&quot;) &#123;
+    return amqpbroker.New(cnf), nil
+&#125;
+
+if strings.HasPrefix(cnf.Broker, &quot;redis://&quot;) || strings.HasPrefix(cnf.Broker, &quot;rediss://&quot;) &#123;
+    var scheme string
+    if strings.HasPrefix(cnf.Broker, &quot;redis://&quot;) &#123;
+        scheme = &quot;redis://&quot;
+    &#125; else &#123;
+        scheme = &quot;rediss://&quot;
+    &#125;
+    parts := strings.Split(cnf.Broker, scheme)
+    if len(parts) != 2 &#123;
+        return nil, fmt.Errorf(
+            &quot;Redis broker connection string should be in format %shost:port, instead got %s&quot;, scheme,
+            cnf.Broker,
+        )
+    &#125;
+    brokers := strings.Split(parts[1], &quot;,&quot;)
+    if len(brokers) &gt; 1 || (cnf.Redis != nil &amp;&amp; cnf.Redis.ClusterMode) &#123;
+        return redisbroker.NewGR(cnf, brokers, 0), nil
+    &#125; else &#123;
+        redisHost, redisPassword, redisDB, err := ParseRedisURL(cnf.Broker)
+        if err != nil &#123;
+            return nil, err
+        &#125;
+        return redisbroker.New(cnf, redisHost, redisPassword, &quot;&quot;, redisDB), nil
+    &#125;
+&#125;
+
+if strings.HasPrefix(cnf.Broker, &quot;redis+socket://&quot;) &#123;
+    redisSocket, redisPassword, redisDB, err := ParseRedisSocketURL(cnf.Broker)
+    if err != nil &#123;
+        return nil, err
+    &#125;
+
+    return redisbroker.New(cnf, &quot;&quot;, redisPassword, redisSocket, redisDB), nil
+&#125;
+
+if strings.HasPrefix(cnf.Broker, &quot;eager&quot;) &#123;
+    return eagerbroker.New(), nil
+&#125;
+
+if _, ok := os.LookupEnv(&quot;DISABLE_STRICT_SQS_CHECK&quot;); ok &#123;
+    //disable SQS name check, so that users can use this with local simulated SQS
+    //where sql broker url might not start with https://sqs
+
+    //even when disabling strict SQS naming check, make sure its still a valid http URL
+    if strings.HasPrefix(cnf.Broker, &quot;https://&quot;) || strings.HasPrefix(cnf.Broker, &quot;http://&quot;) &#123;
+        return sqsbroker.New(cnf), nil
+    &#125;
+&#125; else &#123;
+    if strings.HasPrefix(cnf.Broker, &quot;https://sqs&quot;) &#123;
+        return sqsbroker.New(cnf), nil
+    &#125;
+&#125;
+
+if strings.HasPrefix(cnf.Broker, &quot;gcppubsub://&quot;) &#123;
+    projectID, subscriptionName, err := ParseGCPPubSubURL(cnf.Broker)
+    if err != nil &#123;
+        return nil, err
+    &#125;
+    return gcppubsubbroker.New(cnf, projectID, subscriptionName)
+&#125;
+
+return nil, fmt.Errorf(&quot;Factory failed with broker URL: %v&quot;, cnf.Broker)
+</code></pre>
+<p>}</p>
+<p>函数也比较清晰我们就不多解释。</p>
+<p>Redis的Broker结构<br>&#x2F;&#x2F; Broker represents a Redis broker<br>type Broker struct {<br>common.Broker<br>common.RedisConnector<br>host         string<br>password     string<br>db           int<br>pool         *redis.Pool<br>consumingWG  sync.WaitGroup &#x2F;&#x2F; wait group to make sure whole consumption completes<br>processingWG sync.WaitGroup &#x2F;&#x2F; use wait group to make sure task processing completes<br>delayedWG    sync.WaitGroup<br>&#x2F;&#x2F; If set, path to a socket file overrides hostname<br>socketPath           string<br>redsync              *redsync.Redsync<br>redisOnce            sync.Once<br>redisDelayedTasksKey string<br>}<br>其中的参数也没什么好说的，三个waitgroup 用来维护三个不同的异步程序，分别是worker启动的一个消费者，并发执行任务的执行者，执行延时任务的执行者。redisDelayedTasksKey 其实就是设置在config中的redis结构中的DelayedTaskKey参数，改参数为空则设置为默认的“delayed_tasks”，这个redisDelayedTasksKey对应一个有序队列，这个有序队列根据时间来排序，worker不断地把到时的获取到推送到任务触发队列中。</p>
+<p>Broker 的接口方法<br>&#x2F;&#x2F; Broker - a common interface for all brokers<br>type Broker interface {<br>GetConfig() *config.Config<br>SetRegisteredTaskNames(names []string)<br>IsTaskRegistered(name string) bool<br>StartConsuming(consumerTag string, concurrency int, p TaskProcessor) (bool, error)<br>StopConsuming()<br>Publish(ctx context.Context, task *tasks.Signature) error<br>GetPendingTasks(queue string) ([]*tasks.Signature, error)<br>GetDelayedTasks() ([]*tasks.Signature, error)<br>AdjustRoutingKey(s *tasks.Signature)<br>}</p>
+<p>这其中GetConfig就是获取之前建立sever的那个config结构，GetPendingTasks，GetDelayedTasks 就是获取队列里的所有任务触发，AdjustRoutingKey 文已经介绍过了。</p>
+<p>主要介绍Broker中的消费逻辑</p>
+<p>最重要就是StartComsuming这个函数</p>
+<p>Broker 启动一个任务消费者<br>&#x2F;&#x2F; StartConsuming enters a loop and waits for incoming messages<br>func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcessor iface.TaskProcessor) (bool, error) {<br>b.consumingWG.Add(1)<br>defer b.consumingWG.Done()</p>
+<pre><code>if concurrency &lt; 1 &#123;
+    concurrency = runtime.NumCPU() * 2
+&#125;
+
+b.Broker.StartConsuming(consumerTag, concurrency, taskProcessor)
+
+conn := b.open()
+defer conn.Close()
+
+// Ping the server to make sure connection is live
+_, err := conn.Do(&quot;PING&quot;)
+if err != nil &#123;
+    b.GetRetryFunc()(b.GetRetryStopChan())
+
+    // Return err if retry is still true.
+    // If retry is false, broker.StopConsuming() has been called and
+    // therefore Redis might have been stopped. Return nil exit
+    // StartConsuming()
+    if b.GetRetry() &#123;
+        return b.GetRetry(), err
+    &#125;
+    return b.GetRetry(), errs.ErrConsumerStopped
+&#125;
+
+// Channel to which we will push tasks ready for processing by worker
+deliveries := make(chan []byte, concurrency)
+pool := make(chan struct&#123;&#125;, concurrency)
+
+// initialize worker pool with maxWorkers workers
+for i := 0; i &lt; concurrency; i++ &#123;
+    pool &lt;- struct&#123;&#125;&#123;&#125;
+&#125;
+
+// A receiving goroutine keeps popping messages from the queue by BLPOP
+// If the message is valid and can be unmarshaled into a proper structure
+// we send it to the deliveries channel
+go func() &#123;
+
+    log.INFO.Print(&quot;[*] Waiting for messages. To exit press CTRL+C&quot;)
+
+    for &#123;
+        select &#123;
+        // A way to stop this goroutine from b.StopConsuming
+        case &lt;-b.GetStopChan():
+            close(deliveries)
+            return
+        case &lt;-pool:
+            select &#123;
+            case &lt;-b.GetStopChan():
+                close(deliveries)
+                return
+            default:
+            &#125;
+
+            if taskProcessor.PreConsumeHandler() &#123;
+                task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
+                //TODO: should this error be ignored?
+                if len(task) &gt; 0 &#123;
+                    deliveries &lt;- task
+                &#125;
+            &#125;
+
+            pool &lt;- struct&#123;&#125;&#123;&#125;
+        &#125;
+    &#125;
+&#125;()
+
+// A goroutine to watch for delayed tasks and push them to deliveries
+// channel for consumption by the worker
+b.delayedWG.Add(1)
+go func() &#123;
+    defer b.delayedWG.Done()
+
+    for &#123;
+        select &#123;
+        // A way to stop this goroutine from b.StopConsuming
+        case &lt;-b.GetStopChan():
+            return
+        default:
+            task, err := b.nextDelayedTask(b.redisDelayedTasksKey)
+            if err != nil &#123;
+                continue
+            &#125;
+
+            signature := new(tasks.Signature)
+            decoder := json.NewDecoder(bytes.NewReader(task))
+            decoder.UseNumber()
+            if err := decoder.Decode(signature); err != nil &#123;
+                log.ERROR.Print(errs.NewErrCouldNotUnmarshalTaskSignature(task, err))
+            &#125;
+
+            if err := b.Publish(context.Background(), signature); err != nil &#123;
+                log.ERROR.Print(err)
+            &#125;
+        &#125;
+    &#125;
+&#125;()
+
+if err := b.consume(deliveries, concurrency, taskProcessor); err != nil &#123;
+    return b.GetRetry(), err
+&#125;
+
+// Waiting for any tasks being processed to finish
+b.processingWG.Wait()
+
+return b.GetRetry(), nil
+</code></pre>
+<p>}</p>
+<p>可以看到函数里面维护了两个go程，一个是消费任务触发队列的相当于消费主体的生产者，不停的获取任务并送到deliveries管道进行消费，一个是延时任务队列处理者，这个处理者主要就是判断延时任务是否可以执行，并将可执行的任务调用pubulish方法推送到任务触发队列中。</p>
+<p>我们主要看任务是如何被消费的</p>
+<p>任务获取逻辑：</p>
+<p>&#x2F;&#x2F; nextTask pops next available task from the default queue<br>func (b *Broker) nextTask(queue string) (result []byte, err error) {<br>conn :&#x3D; b.open()<br>defer conn.Close()</p>
+<pre><code>pollPeriodMilliseconds := 1000 // default poll period for normal tasks
+if b.GetConfig().Redis != nil &#123;
+    configuredPollPeriod := b.GetConfig().Redis.NormalTasksPollPeriod
+    if configuredPollPeriod &gt; 0 &#123;
+        pollPeriodMilliseconds = configuredPollPeriod
+    &#125;
+&#125;
+pollPeriod := time.Duration(pollPeriodMilliseconds) * time.Millisecond
+
+// Issue 548: BLPOP expects an integer timeout expresses in seconds.
+// The call will if the value is a float. Convert to integer using
+// math.Ceil():
+//   math.Ceil(0.0) --&gt; 0 (block indefinitely)
+//   math.Ceil(0.2) --&gt; 1 (timeout after 1 second)
+pollPeriodSeconds := math.Ceil(pollPeriod.Seconds())
+
+items, err := redis.ByteSlices(conn.Do(&quot;BLPOP&quot;, queue, pollPeriodSeconds))
+if err != nil &#123;
+    return []byte&#123;&#125;, err
+&#125;
+
+// items[0] - the name of the key where an element was popped
+// items[1] - the value of the popped element
+if len(items) != 2 &#123;
+    return []byte&#123;&#125;, redis.ErrNil
+&#125;
+
+result = items[1]
+
+return result, nil
+</code></pre>
+<p>}</p>
+<p>这个逻辑很简单，使用redis的阻塞式左弹出操作来获取一个任务触发。</p>
+<p>任务消费逻辑：<br>&#x2F;&#x2F; consume takes delivered messages from the channel and manages a worker pool<br>&#x2F;&#x2F; to process tasks concurrently<br>func (b <em>Broker) consume(deliveries &lt;-chan []byte, concurrency int, taskProcessor iface.TaskProcessor) error {<br>errorsChan :&#x3D; make(chan error, concurrency</em>2)<br>pool :&#x3D; make(chan struct{}, concurrency)</p>
+<pre><code>// init pool for Worker tasks execution, as many slots as Worker concurrency param
+go func() &#123;
+    for i := 0; i &lt; concurrency; i++ &#123;
+        pool &lt;- struct&#123;&#125;&#123;&#125;
+    &#125;
+&#125;()
+
+for &#123;
+    select &#123;
+    case err := &lt;-errorsChan:
+        return err
+    case d, open := &lt;-deliveries:
+        if !open &#123;
+            return nil
+        &#125;
+        if concurrency &gt; 0 &#123;
+            // get execution slot from pool (blocks until one is available)
+            select &#123;
+            case &lt;-b.GetStopChan():
+                b.requeueMessage(d, taskProcessor)
+                continue
+            case &lt;-pool:
+            &#125;
+        &#125;
+
+        b.processingWG.Add(1)
+
+        // Consume the task inside a goroutine so multiple tasks
+        // can be processed concurrently
+        go func() &#123;
+            if err := b.consumeOne(d, taskProcessor); err != nil &#123;
+                errorsChan &lt;- err
+            &#125;
+
+            b.processingWG.Done()
+
+            if concurrency &gt; 0 &#123;
+                // give slot back to pool
+                pool &lt;- struct&#123;&#125;&#123;&#125;
+            &#125;
+        &#125;()
+    &#125;
+&#125;
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; consumeOne processes a single message using TaskProcessor<br>func (b *Broker) consumeOne(delivery []byte, taskProcessor iface.TaskProcessor) error {<br>signature :&#x3D; new(tasks.Signature)<br>decoder :&#x3D; json.NewDecoder(bytes.NewReader(delivery))<br>decoder.UseNumber()<br>if err :&#x3D; decoder.Decode(signature); err !&#x3D; nil {<br>return errs.NewErrCouldNotUnmarshalTaskSignature(delivery, err)<br>}</p>
+<pre><code>// If the task is not registered, we requeue it,
+// there might be different workers for processing specific tasks
+if !b.IsTaskRegistered(signature.Name) &#123;
+    if signature.IgnoreWhenTaskNotRegistered &#123;
+        return nil
+    &#125;
+    log.INFO.Printf(&quot;Task not registered with this worker. Requeuing message: %s&quot;, delivery)
+    b.requeueMessage(delivery, taskProcessor)
+    return nil
+&#125;
+
+log.DEBUG.Printf(&quot;Received new message: %s&quot;, delivery)
+
+return taskProcessor.Process(signature)
+</code></pre>
+<p>}<br>其实这个逻辑之前也说过其核心就是worker的Process操作，可以留意下作者并发控制的逻辑这个和之前StartComsume的并发控制一样都是采用类似信号量控制法的方式。</p>
+<p>Backend<br>Backend 和 Broker 类似也是作者设计的一个存储结构的接口，用于记录执行任务状态，结果。</p>
+<p>Backend 的创建<br>&#x2F;&#x2F; BackendFactory creates a new object of backends.Interface<br>&#x2F;&#x2F; Currently supported backends are AMQP&#x2F;S and Memcache<br>func BackendFactory(cnf *config.Config) (backendiface.Backend, error) {</p>
+<pre><code>if strings.HasPrefix(cnf.ResultBackend, &quot;amqp://&quot;) &#123;
+    return amqpbackend.New(cnf), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;amqps://&quot;) &#123;
+    return amqpbackend.New(cnf), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;memcache://&quot;) &#123;
+    parts := strings.Split(cnf.ResultBackend, &quot;memcache://&quot;)
+    if len(parts) != 2 &#123;
+        return nil, fmt.Errorf(
+            &quot;Memcache result backend connection string should be in format memcache://server1:port,server2:port, instead got %s&quot;,
+            cnf.ResultBackend,
+        )
+    &#125;
+    servers := strings.Split(parts[1], &quot;,&quot;)
+    return memcachebackend.New(cnf, servers), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;redis://&quot;) || strings.HasPrefix(cnf.ResultBackend, &quot;rediss://&quot;) &#123;
+    var scheme string
+    if strings.HasPrefix(cnf.ResultBackend, &quot;redis://&quot;) &#123;
+        scheme = &quot;redis://&quot;
+    &#125; else &#123;
+        scheme = &quot;rediss://&quot;
+    &#125;
+    parts := strings.Split(cnf.ResultBackend, scheme)
+    addrs := strings.Split(parts[1], &quot;,&quot;)
+    if len(addrs) &gt; 1 || (cnf.Redis != nil &amp;&amp; cnf.Redis.ClusterMode) &#123;
+        return redisbackend.NewGR(cnf, addrs, 0), nil
+    &#125; else &#123;
+        redisHost, redisPassword, redisDB, err := ParseRedisURL(cnf.ResultBackend)
+
+        if err != nil &#123;
+            return nil, err
+        &#125;
+
+        return redisbackend.New(cnf, redisHost, redisPassword, &quot;&quot;, redisDB), nil
+    &#125;
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;redis+socket://&quot;) &#123;
+    redisSocket, redisPassword, redisDB, err := ParseRedisSocketURL(cnf.ResultBackend)
+    if err != nil &#123;
+        return nil, err
+    &#125;
+
+    return redisbackend.New(cnf, &quot;&quot;, redisPassword, redisSocket, redisDB), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;mongodb://&quot;) ||
+    strings.HasPrefix(cnf.ResultBackend, &quot;mongodb+srv://&quot;) &#123;
+    return mongobackend.New(cnf)
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;eager&quot;) &#123;
+    return eagerbackend.New(), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;null&quot;) &#123;
+    return nullbackend.New(), nil
+&#125;
+
+if strings.HasPrefix(cnf.ResultBackend, &quot;https://dynamodb&quot;) &#123;
+    return dynamobackend.New(cnf), nil
+&#125;
+
+return nil, fmt.Errorf(&quot;Factory failed with result backend: %v&quot;, cnf.ResultBackend)
+</code></pre>
+<p>}</p>
+<p>其创建的方式和Broker类似，不做过多废话。</p>
+<p>Redis的Backend结构<br>&#x2F;&#x2F; Backend represents a Redis result backend<br>type Backend struct {<br>common.Backend<br>host     string<br>password string<br>db       int<br>pool     *redis.Pool<br>&#x2F;&#x2F; If set, path to a socket file overrides hostname<br>socketPath string<br>redsync    *redsync.Redsync<br>redisOnce  sync.Once<br>common.RedisConnector<br>}<br>Backend的接口方法<br>&#x2F;&#x2F; Backend - a common interface for all result backends<br>type Backend interface {<br>&#x2F;&#x2F; Group related functions<br>InitGroup(groupUUID string, taskUUIDs []string) error<br>GroupCompleted(groupUUID string, groupTaskCount int) (bool, error)<br>GroupTaskStates(groupUUID string, groupTaskCount int) ([]*tasks.TaskState, error)<br>TriggerChord(groupUUID string) (bool, error)</p>
+<pre><code>// Setting / getting task state
+SetStatePending(signature *tasks.Signature) error
+SetStateReceived(signature *tasks.Signature) error
+SetStateStarted(signature *tasks.Signature) error
+SetStateRetry(signature *tasks.Signature) error
+SetStateSuccess(signature *tasks.Signature, results []*tasks.TaskResult) error
+SetStateFailure(signature *tasks.Signature, err string) error
+GetState(taskUUID string) (*tasks.TaskState, error)
+
+// Purging stored stored tasks states and group meta data
+IsAMQP() bool
+PurgeState(taskUUID string) error
+PurgeGroupMeta(groupUUID string) error
+</code></pre>
+<p>}</p>
+<p>可以看出这个接口方法其实都是见名知意的，我大概解释一下：</p>
+<p>Backend 的主要任务是把任务的一系列执行状态和结构记录下来，它通过Signature的UUID来关联，它的记录在redis中的结构是String类型并以signature的UUID为Key。在执行某一个signature任务时会同步的记录一个对应UUID的TaskState</p>
+<p>&#x2F;&#x2F; TaskState represents a state of a task<br>type TaskState struct {<br>TaskUUID  string        <code>bson:&quot;_id&quot;</code><br>TaskName  string        <code>bson:&quot;task_name&quot;</code><br>State     string        <code>bson:&quot;state&quot;</code><br>Results   []*TaskResult <code>bson:&quot;results&quot;</code><br>Error     string        <code>bson:&quot;error&quot;</code><br>CreatedAt time.Time     <code>bson:&quot;created_at&quot;</code><br>TTL       int64         <code>bson:&quot;ttl,omitempty&quot;</code><br>}ai<br>多的大家就自己看吧，包括函数结果的存储，还有任务组group的状态结果记录等。</p>
+<p>SetStatePending：该函数是在Sever.SendTask时存入一个pending状态的taskState<br>SetStateReceived：该函数是在Broker获取一个signature的一开始将taskState状态更新为received<br>SetStateStarted：该函数是在即将开始执行任务前将taskState更新为started<br>剩下大同小异。可以结合worker的Process和taskSucceeded方法来看效果更佳。</p>
+<p>通过Backend获取结果<br>在上面的代码中我们发现每次使用Sever触发任务都会有一个result返回，这个结构就是作者设计来通过Backend获取结果的：</p>
+<p>&#x2F;&#x2F; AsyncResult represents a task result<br>type AsyncResult struct {<br>Signature *tasks.Signature<br>taskState *tasks.TaskState<br>backend   iface.Backend<br>}</p>
+<p>&#x2F;&#x2F; NewAsyncResult creates AsyncResult instance<br>func NewAsyncResult(signature *tasks.Signature, backend iface.Backend) *AsyncResult {<br>return &amp;AsyncResult{<br>Signature: signature,<br>taskState: new(tasks.TaskState),<br>backend:   backend,<br>}<br>}<br>这个结构中Signature是老朋友了，taskState也讲过，backend就是用来获取结果的Backend接口。看下如何获取结果：</p>
+<p>&#x2F;&#x2F; Get returns task results (synchronous blocking call)<br>func (asyncResult *AsyncResult) Get(sleepDuration time.Duration) ([]reflect.Value, error) {<br>for {<br>results, err :&#x3D; asyncResult.Touch()</p>
+<pre><code>    if results == nil &amp;&amp; err == nil &#123;
+        time.Sleep(sleepDuration)
+    &#125; else &#123;
+        return results, err
+    &#125;
+&#125;
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; Touch the state and don’t wait<br>func (asyncResult *AsyncResult) Touch() ([]reflect.Value, error) {<br>if asyncResult.backend &#x3D;&#x3D; nil {<br>return nil, ErrBackendNotConfigured<br>}</p>
+<pre><code>asyncResult.GetState()
+
+// Purge state if we are using AMQP backend
+if asyncResult.backend.IsAMQP() &amp;&amp; asyncResult.taskState.IsCompleted() &#123;
+    asyncResult.backend.PurgeState(asyncResult.taskState.TaskUUID)
+&#125;
+
+if asyncResult.taskState.IsFailure() &#123;
+    return nil, errors.New(asyncResult.taskState.Error)
+&#125;
+
+if asyncResult.taskState.IsSuccess() &#123;
+    return tasks.ReflectTaskResults(asyncResult.taskState.Results)
+&#125;
+
+return nil, nil
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; GetState returns latest task state<br>func (asyncResult *AsyncResult) GetState() *tasks.TaskState {<br>if asyncResult.taskState.IsCompleted() {<br>return asyncResult.taskState<br>}</p>
+<pre><code>taskState, err := asyncResult.backend.GetState(asyncResult.Signature.UUID)
+if err == nil &#123;
+    asyncResult.taskState = taskState
+&#125;
+
+return asyncResult.taskState
+</code></pre>
+<p>}<br>获取任务结果的核心方法就是GetState，Touch 则是在任务成功时将结果出参返回出来。Get则是加了一个超时退出。</p>
+<p>任务编排<br>接下来是任务编排的介绍，Machinery一共提供了三种任务编排方式：</p>
+<p>Group ： 执行一组异步任务，任务之间互不影响。<br>Chain：执行一组同步任务，任务有次序之分，上个任务的出参可作为下个任务的入参。<br>Chord：执行一组同步任务，执行完成后，在调用一个回调函数。<br>好了我们大致看下这三个结构：</p>
+<p>Group<br>Group 结构<br>&#x2F;&#x2F; Group creates a set of tasks to be executed in parallel<br>type Group struct {<br>GroupUUID string<br>Tasks     []*Signature<br>}<br>Group 创建<br>&#x2F;&#x2F; NewGroup creates a new group of tasks to be processed in parallel<br>func NewGroup(signatures …*Signature) (*Group, error) {<br>&#x2F;&#x2F; Generate a group UUID<br>groupUUID :&#x3D; uuid.New().String()<br>groupID :&#x3D; fmt.Sprintf(“group_%v”, groupUUID)</p>
+<pre><code>// Auto generate task UUIDs if needed, group tasks by common group UUID
+for _, signature := range signatures &#123;
+    if signature.UUID == &quot;&quot; &#123;
+        signatureID := uuid.New().String()
+        signature.UUID = fmt.Sprintf(&quot;task_%v&quot;, signatureID)
+    &#125;
+    signature.GroupUUID = groupID
+    signature.GroupTaskCount = len(signatures)
+&#125;
+
+return &amp;Group&#123;
+    GroupUUID: groupID,
+    Tasks:     signatures,
+&#125;, nil
+</code></pre>
+<p>}<br>group 结构其实就是维护了多个Signature，并形成一个UUID作为标识。我们想要并发异步执行多个互不影响的任务就可以使用这个结构来进行任务编排，类似于一个WaitGroup。形成Group结构后使用 Sever.SendGroup 来进行触发。这里需要注意的是如何定义该Group的成功与失败，以及函数执行结果如何获取。</p>
+<p>Group 用法<br>触发<br>使用Sever.SendGroupWithContext来触发</p>
+<p>&#x2F;&#x2F; SendGroupWithContext will inject the trace context in all the signature headers before publishing it<br>func (server *Server) SendGroupWithContext(ctx context.Context, group *tasks.Group, sendConcurrency int) ([]*result.AsyncResult, error) {<br>span, _ :&#x3D; opentracing.StartSpanFromContext(ctx, “SendGroup”, tracing.ProducerOption(), tracing.MachineryTag, tracing.WorkflowGroupTag)<br>defer span.Finish()</p>
+<pre><code>tracing.AnnotateSpanWithGroupInfo(span, group, sendConcurrency)
+
+// Make sure result backend is defined
+if server.backend == nil &#123;
+    return nil, errors.New(&quot;Result backend required&quot;)
+&#125;
+
+asyncResults := make([]*result.AsyncResult, len(group.Tasks))
+
+var wg sync.WaitGroup
+wg.Add(len(group.Tasks))
+errorsChan := make(chan error, len(group.Tasks)*2)
+
+// Init group
+server.backend.InitGroup(group.GroupUUID, group.GetUUIDs())
+
+// Init the tasks Pending state first
+for _, signature := range group.Tasks &#123;
+    if err := server.backend.SetStatePending(signature); err != nil &#123;
+        errorsChan &lt;- err
+        continue
+    &#125;
+&#125;
+
+pool := make(chan struct&#123;&#125;, sendConcurrency)
+go func() &#123;
+    for i := 0; i &lt; sendConcurrency; i++ &#123;
+        pool &lt;- struct&#123;&#125;&#123;&#125;
+    &#125;
+&#125;()
+
+for i, signature := range group.Tasks &#123;
+
+    if sendConcurrency &gt; 0 &#123;
+        &lt;-pool
+    &#125;
+
+    go func(s *tasks.Signature, index int) &#123;
+        defer wg.Done()
+
+        // Publish task
+
+        err := server.broker.Publish(ctx, s)
+
+        if sendConcurrency &gt; 0 &#123;
+            pool &lt;- struct&#123;&#125;&#123;&#125;
+        &#125;
+
+        if err != nil &#123;
+            errorsChan &lt;- fmt.Errorf(&quot;Publish message error: %s&quot;, err)
+            return
+        &#125;
+
+        asyncResults[index] = result.NewAsyncResult(s, server.backend)
+    &#125;(signature, i)
+&#125;
+
+done := make(chan int)
+go func() &#123;
+    wg.Wait()
+    done &lt;- 1
+&#125;()
+
+select &#123;
+case err := &lt;-errorsChan:
+    return asyncResults, err
+case &lt;-done:
+    return asyncResults, nil
+&#125;
+</code></pre>
+<p>}<br>从触发函数可以看出Group无非是把其包含的signature一个个的放入出发队列让后返回一个一一对应的结果结构来收集结果。有一点不同的是使用backend.InitGroup方法在Backend的结果处理集合中加入了一个Group结构。</p>
+<p>&#x2F;&#x2F; GroupMeta stores useful metadata about tasks within the same group<br>&#x2F;&#x2F; E.g. UUIDs of all tasks which are used in order to check if all tasks<br>&#x2F;&#x2F; completed successfully or not and thus whether to trigger chord callback<br>type GroupMeta struct {<br>GroupUUID      string    <code>bson:&quot;_id&quot;</code><br>TaskUUIDs      []string  <code>bson:&quot;task_uuids&quot;</code><br>ChordTriggered bool      <code>bson:&quot;chord_triggered&quot;</code><br>Lock           bool      <code>bson:&quot;lock&quot;</code><br>CreatedAt      time.Time <code>bson:&quot;created_at&quot;</code><br>TTL            int64     <code>bson:&quot;ttl,omitempty&quot;</code><br>}</p>
+<p>&#x2F;&#x2F; InitGroup creates and saves a group meta data object<br>func (b *Backend) InitGroup(groupUUID string, taskUUIDs []string) error {<br>groupMeta :&#x3D; &amp;tasks.GroupMeta{<br>GroupUUID: groupUUID,<br>TaskUUIDs: taskUUIDs,<br>CreatedAt: time.Now().UTC(),<br>}</p>
+<pre><code>encoded, err := json.Marshal(groupMeta)
+if err != nil &#123;
+    return err
+&#125;
+
+conn := b.open()
+defer conn.Close()
+
+expiration := int64(b.getExpiration().Seconds())
+_, err = conn.Do(&quot;SET&quot;, groupUUID, encoded, &quot;EX&quot;, expiration)
+if err != nil &#123;
+    return err
+&#125;
+
+return nil
+</code></pre>
+<p>}<br>这个groupMeta结构会以GroupUUID为Key存入Backend，使用这个结构来关联Signature，后续可以使用该结构把所有的对应Task结果获取到（参考backend.GroupTaskStates)。</p>
+<p>执行<br>group 的执行其实没有特殊的处理就是将其包含的任务都放入任务触发队列中。</p>
+<p>结果<br>它的结果获取其实也是去获取这几个任务的结果集，没有特殊的处理。</p>
+<p>Group用例<br>我们来看一个官方使用用例</p>
+<p>func testSendGroup(server Server, t *testing.T, sendConcurrency int) {<br>t1, t2, t3 :&#x3D; newAddTask(1, 1), newAddTask(2, 2), newAddTask(5, 6)</p>
+<pre><code>group, err := tasks.NewGroup(t1, t2, t3)
+if err != nil &#123;
+    t.Fatal(err)
+&#125;
+
+asyncResults, err := server.SendGroup(group, sendConcurrency)
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+expectedResults := []int64&#123;2, 4, 11&#125;
+
+actualResults := make([]int64, 3)
+
+for i, asyncResult := range asyncResults &#123;
+    results, err := asyncResult.Get(time.Duration(time.Millisecond * 5))
+    if err != nil &#123;
+        t.Error(err)
+    &#125;
+
+    if len(results) != 1 &#123;
+        t.Errorf(&quot;Number of results returned = %d. Wanted %d&quot;, len(results), 1)
+    &#125;
+
+    intResult, ok := results[0].Interface().(int64)
+    if !ok &#123;
+        t.Errorf(&quot;Could not convert %v to int64&quot;, results[0].Interface())
+    &#125;
+    actualResults[i] = intResult
+&#125;
+
+sort.Sort(ascendingInt64s(actualResults))
+
+if !reflect.DeepEqual(expectedResults, actualResults) &#123;
+    t.Errorf(
+        &quot;expected results = %v, actual results = %v&quot;,
+        expectedResults,
+        actualResults,
+    )
+&#125;
+</code></pre>
+<p>}</p>
+<p>当然SendGroup也是可以进行并发控制的如果你一次塞入的任务过多你可以将并发量调大。</p>
+<p>Chord<br>Chord 结构<br>&#x2F;&#x2F; Chord adds an optional callback to the group to be executed<br>&#x2F;&#x2F; after all tasks in the group finished<br>type Chord struct {<br>Group    *Group<br>Callback *Signature<br>}<br>从结构上可以看出Chord任务是在Group任务的基础上加入了一个Callback单任务。可以想象其编排的目的就是在所有Group的任务做成功后，进行一个回调函数。</p>
+<p>Chord 创建<br>&#x2F;&#x2F; NewChord creates a new chord (a group of tasks with a single callback<br>&#x2F;&#x2F; to be executed after all tasks in the group has completed)<br>func NewChord(group *Group, callback *Signature) (*Chord, error) {<br>if callback.UUID &#x3D;&#x3D; “” {<br>&#x2F;&#x2F; Generate a UUID for the chord callback<br>callbackUUID :&#x3D; uuid.New().String()<br>callback.UUID &#x3D; fmt.Sprintf(“chord_%v”, callbackUUID)<br>}</p>
+<pre><code>// Add a chord callback to all tasks
+for _, signature := range group.Tasks &#123;
+    signature.ChordCallback = callback
+&#125;
+
+return &amp;Chord&#123;Group: group, Callback: callback&#125;, nil
+</code></pre>
+<p>}</p>
+<p>Chord 用法<br>触发<br>使用Sever.SendChordWithContext进行Chord任务的触发</p>
+<p>&#x2F;&#x2F; SendChordWithContext will inject the trace context in all the signature headers before publishing it<br>func (server *Server) SendChordWithContext(ctx context.Context, chord *tasks.Chord, sendConcurrency int) (*result.ChordAsyncResult, error) {<br>span, _ :&#x3D; opentracing.StartSpanFromContext(ctx, “SendChord”, tracing.ProducerOption(), tracing.MachineryTag, tracing.WorkflowChordTag)<br>defer span.Finish()</p>
+<pre><code>tracing.AnnotateSpanWithChordInfo(span, chord, sendConcurrency)
+
+_, err := server.SendGroupWithContext(ctx, chord.Group, sendConcurrency)
+if err != nil &#123;
+    return nil, err
+&#125;
+
+return result.NewChordAsyncResult(
+    chord.Group.Tasks,
+    chord.Callback,
+    server.backend,
+), nil
+</code></pre>
+<p>}</p>
+<p>执行<br>chord任务在执行过程中其实与group无差别，就是并发的去执行几个group中的异步任务，但是在所有group任务都执行成功后会将回调塞入任务触发队列：</p>
+<p>&#x2F;&#x2F; taskSucceeded updates the task state and triggers success callbacks or a<br>&#x2F;&#x2F; chord callback if this was the last task of a group with a chord callback<br>func (worker *Worker) taskSucceeded(signature *tasks.Signature, taskResults []*tasks.TaskResult) error {<br>&#x2F;&#x2F; Update task state to SUCCESS<br>if err :&#x3D; worker.server.GetBackend().SetStateSuccess(signature, taskResults); err !&#x3D; nil {<br>return fmt.Errorf(“Set state to ‘success’ for task %s returned error: %s”, signature.UUID, err)<br>}</p>
+<pre><code>// Log human readable results of the processed task
+var debugResults = &quot;[]&quot;
+results, err := tasks.ReflectTaskResults(taskResults)
+if err != nil &#123;
+    log.WARNING.Print(err)
+&#125; else &#123;
+    debugResults = tasks.HumanReadableResults(results)
+&#125;
+log.DEBUG.Printf(&quot;Processed task %s. Results = %s&quot;, signature.UUID, debugResults)
+
+// Trigger success callbacks
+
+for _, successTask := range signature.OnSuccess &#123;
+    if signature.Immutable == false &#123;
+        // Pass results of the task to success callbacks
+        for _, taskResult := range taskResults &#123;
+            successTask.Args = append(successTask.Args, tasks.Arg&#123;
+                Type:  taskResult.Type,
+                Value: taskResult.Value,
+            &#125;)
+        &#125;
+    &#125;
+
+    worker.server.SendTask(successTask)
+&#125;
+
+// If the task was not part of a group, just return
+if signature.GroupUUID == &quot;&quot; &#123;
+    return nil
+&#125;
+
+// There is no chord callback, just return
+if signature.ChordCallback == nil &#123;
+    return nil
+&#125;
+
+// Check if all task in the group has completed
+groupCompleted, err := worker.server.GetBackend().GroupCompleted(
+    signature.GroupUUID,
+    signature.GroupTaskCount,
+)
+if err != nil &#123;
+    return fmt.Errorf(&quot;Completed check for group %s returned error: %s&quot;, signature.GroupUUID, err)
+&#125;
+
+// If the group has not yet completed, just return
+if !groupCompleted &#123;
+    return nil
+&#125;
+
+// Defer purging of group meta queue if we are using AMQP backend
+if worker.hasAMQPBackend() &#123;
+    defer worker.server.GetBackend().PurgeGroupMeta(signature.GroupUUID)
+&#125;
+
+// Trigger chord callback
+shouldTrigger, err := worker.server.GetBackend().TriggerChord(signature.GroupUUID)
+if err != nil &#123;
+    return fmt.Errorf(&quot;Triggering chord for group %s returned error: %s&quot;, signature.GroupUUID, err)
+&#125;
+
+// Chord has already been triggered
+if !shouldTrigger &#123;
+    return nil
+&#125;
+
+// Get task states
+taskStates, err := worker.server.GetBackend().GroupTaskStates(
+    signature.GroupUUID,
+    signature.GroupTaskCount,
+)
+if err != nil &#123;
+    log.ERROR.Printf(
+        &quot;Failed to get tasks states for group:[%s]. Task count:[%d]. The chord may not be triggered. Error:[%s]&quot;,
+        signature.GroupUUID,
+        signature.GroupTaskCount,
+        err,
+    )
+    return nil
+&#125;
+
+// Append group tasks&#39; return values to chord task if it&#39;s not immutable
+for _, taskState := range taskStates &#123;
+    if !taskState.IsSuccess() &#123;
+        return nil
+    &#125;
+
+    if signature.ChordCallback.Immutable == false &#123;
+        // Pass results of the task to the chord callback
+        for _, taskResult := range taskState.Results &#123;
+            signature.ChordCallback.Args = append(signature.ChordCallback.Args, tasks.Arg&#123;
+                Type:  taskResult.Type,
+                Value: taskResult.Value,
+            &#125;)
+        &#125;
+    &#125;
+&#125;
+
+// Send the chord task
+_, err = worker.server.SendTask(signature.ChordCallback)
+if err != nil &#123;
+    return err
+&#125;
+
+return nil
+</code></pre>
+<p>}<br>可以看到worker在执行任务的时候会在成功后看下该任务是否存在于某group，如果存在会判断group中的所有任务是否成功，即调用Backend的GroupCompleted方法：</p>
+<p>&#x2F;&#x2F; GroupCompleted returns true if all tasks in a group finished<br>func (b *Backend) GroupCompleted(groupUUID string, groupTaskCount int) (bool, error) {<br>conn :&#x3D; b.open()<br>defer conn.Close()</p>
+<pre><code>groupMeta, err := b.getGroupMeta(conn, groupUUID)
+if err != nil &#123;
+    return false, err
+&#125;
+
+taskStates, err := b.getStates(conn, groupMeta.TaskUUIDs...)
+if err != nil &#123;
+    return false, err
+&#125;
+
+var countSuccessTasks = 0
+for _, taskState := range taskStates &#123;
+    if taskState.IsCompleted() &#123;
+        countSuccessTasks++
+    &#125;
+&#125;
+
+return countSuccessTasks == groupTaskCount, nil
+</code></pre>
+<p>}<br>该方法会找出所有Group的 taskState 然后判断是否都已经完成全完成了判定为成功。如果全部成功则会用TriggerChord去判断是否存在回调函数。如果存在将会把Callback函数触发塞入任务触发队列中。</p>
+<p>结果<br>chord的结果获取因为有回调函数的状态差异也有相应的不同。</p>
+<p>&#x2F;&#x2F; ChordAsyncResult represents a result of a chord<br>type ChordAsyncResult struct {<br>groupAsyncResults []*AsyncResult<br>chordAsyncResult  *AsyncResult<br>backend           iface.Backend<br>}</p>
+<p>&#x2F;&#x2F; NewChordAsyncResult creates ChordAsyncResult instance<br>func NewChordAsyncResult(groupTasks []*tasks.Signature, chordCallback *tasks.Signature, backend iface.Backend) *ChordAsyncResult {<br>asyncResults :&#x3D; make([]*AsyncResult, len(groupTasks))<br>for i, task :&#x3D; range groupTasks {<br>asyncResults[i] &#x3D; NewAsyncResult(task, backend)<br>}<br>return &amp;ChordAsyncResult{<br>groupAsyncResults: asyncResults,<br>chordAsyncResult:  NewAsyncResult(chordCallback, backend),<br>backend:           backend,<br>}<br>}<br>这个是Chord的结果处理结构，其实就是将基本任务和回调任务区分了</p>
+<p>&#x2F;&#x2F; Get returns result of a chord (synchronous blocking call)<br>func (chordAsyncResult *ChordAsyncResult) Get(sleepDuration time.Duration) ([]reflect.Value, error) {<br>if chordAsyncResult.backend &#x3D;&#x3D; nil {<br>return nil, ErrBackendNotConfigured<br>}</p>
+<pre><code>var err error
+for _, asyncResult := range chordAsyncResult.groupAsyncResults &#123;
+    _, err = asyncResult.Get(sleepDuration)
+    if err != nil &#123;
+        return nil, err
+    &#125;
+&#125;
+
+return chordAsyncResult.chordAsyncResult.Get(sleepDuration)
+</code></pre>
+<p>}</p>
+<p>或取结果时也没有什么特殊的就是一个个获取。</p>
+<p>Chain<br>Chain 结构<br>&#x2F;&#x2F; Chain creates a chain of tasks to be executed one after another<br>type Chain struct {<br>Tasks []*Signature<br>}</p>
+<p>Chain 结构其实是一个同步执行多任务结构，如果你对signature足够的了解其实是可以直接触发同步执行任务的。但有了Chain我们的同步执行任务组设计将会异常方便。</p>
+<p>Chain 创建<br>&#x2F;&#x2F; NewChain creates a new chain of tasks to be processed one by one, passing<br>&#x2F;&#x2F; results unless task signatures are set to be immutable<br>func NewChain(signatures …*Signature) (*Chain, error) {<br>&#x2F;&#x2F; Auto generate task UUIDs if needed<br>for <em>, signature :&#x3D; range signatures {<br>if signature.UUID &#x3D;&#x3D; “” {<br>signatureID :&#x3D; uuid.New().String()<br>signature.UUID &#x3D; fmt.Sprintf(“task</em>%v”, signatureID)<br>}<br>}</p>
+<pre><code>for i := len(signatures) - 1; i &gt; 0; i-- &#123;
+    if i &gt; 0 &#123;
+        signatures[i-1].OnSuccess = []*Signature&#123;signatures[i]&#125;
+    &#125;
+&#125;
+
+chain := &amp;Chain&#123;Tasks: signatures&#125;
+
+return chain, nil
+</code></pre>
+<p>}</p>
+<p>新建的Chain其实是将一个任务组最后一个任务不断的塞向前一个任务的OnSuccess回调中直到第一个任务为止，其意思就是第一个任务结束后将继续执行第二个。</p>
+<p>Chain的用法<br>触发<br>使用Sever.SendChainWithContext进行Chord任务的触发</p>
+<p>&#x2F;&#x2F; SendChainWithContext will inject the trace context in all the signature headers before publishing it<br>func (server *Server) SendChainWithContext(ctx context.Context, chain *tasks.Chain) (*result.ChainAsyncResult, error) {<br>span, _ :&#x3D; opentracing.StartSpanFromContext(ctx, “SendChain”, tracing.ProducerOption(), tracing.MachineryTag, tracing.WorkflowChainTag)<br>defer span.Finish()</p>
+<pre><code>tracing.AnnotateSpanWithChainInfo(span, chain)
+
+return server.SendChain(chain)
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; SendChain triggers a chain of tasks<br>func (server *Server) SendChain(chain *tasks.Chain) (*result.ChainAsyncResult, error) {<br>_, err :&#x3D; server.SendTask(chain.Tasks[0])<br>if err !&#x3D; nil {<br>return nil, err<br>}</p>
+<pre><code>return result.NewChainAsyncResult(chain.Tasks, server.backend), nil
+</code></pre>
+<p>}<br>触发时仅仅触发第一个Task。然后新建一个ChainAsyncResult结构来接受结果</p>
+<p>执行<br>执行其实没有特殊的处理其实本身就会在任务执行成功后执行OnSuccess的回调</p>
+<p>结果<br>因为我们只要获取chain的最后一个任务的结果，所以结果的获取也是有些区别，作者新建了一个Chain的结果收集结构。</p>
+<p>&#x2F;&#x2F; ChainAsyncResult represents a result of a chain of tasks<br>type ChainAsyncResult struct {<br>asyncResults []*AsyncResult<br>backend      iface.Backend<br>}<br>获取Chain的任务结果</p>
+<p>&#x2F;&#x2F; Get returns results of a chain of tasks (synchronous blocking call)<br>func (chainAsyncResult *ChainAsyncResult) Get(sleepDuration time.Duration) ([]reflect.Value, error) {<br>if chainAsyncResult.backend &#x3D;&#x3D; nil {<br>return nil, ErrBackendNotConfigured<br>}</p>
+<pre><code>var (
+    results []reflect.Value
+    err     error
+)
+
+for _, asyncResult := range chainAsyncResult.asyncResults &#123;
+    results, err = asyncResult.Get(sleepDuration)
+    if err != nil &#123;
+        return nil, err
+    &#125;
+&#125;
+
+return results, err
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; GetWithTimeout returns results of a chain of tasks with timeout (synchronous blocking call)<br>func (chainAsyncResult *ChainAsyncResult) GetWithTimeout(timeoutDuration, sleepDuration time.Duration) ([]reflect.Value, error) {<br>if chainAsyncResult.backend &#x3D;&#x3D; nil {<br>return nil, ErrBackendNotConfigured<br>}</p>
+<pre><code>var (
+    results []reflect.Value
+    err     error
+)
+
+timeout := time.NewTimer(timeoutDuration)
+ln := len(chainAsyncResult.asyncResults)
+lastResult := chainAsyncResult.asyncResults[ln-1]
+
+for &#123;
+    select &#123;
+    case &lt;-timeout.C:
+        return nil, ErrTimeoutReached
+    default:
+
+        for _, asyncResult := range chainAsyncResult.asyncResults &#123;
+            _, err = asyncResult.Touch()
+            if err != nil &#123;
+                return nil, err
+            &#125;
+        &#125;
+
+        results, err = lastResult.Touch()
+        if err != nil &#123;
+            return nil, err
+        &#125;
+        if results != nil &#123;
+            return results, err
+        &#125;
+        time.Sleep(sleepDuration)
+    &#125;
+&#125;
+</code></pre>
+<p>}<br>两个方法其实都是获取最后一个任务的结果，如果你需要分任务的结果当然可以从自任务中去获取，因为每个任务的结果其实都已经收集到了ChainAsyncResulth中</p>
+<p>Chain 用例<br>func testSendChain(server Server, t *testing.T) {<br>t1, t2, t3 :&#x3D; newAddTask(2, 2), newAddTask(5, 6), newMultipleTask(4)</p>
+<pre><code>chain, err := tasks.NewChain(t1, t2, t3)
+if err != nil &#123;
+    t.Fatal(err)
+&#125;
+
+chainAsyncResult, err := server.SendChain(chain)
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+results, err := chainAsyncResult.Get(time.Duration(time.Millisecond * 5))
+if err != nil &#123;
+    t.Error(err)
+&#125;
+
+if len(results) != 1 &#123;
+    t.Errorf(&quot;Number of results returned = %d. Wanted %d&quot;, len(results), 1)
+&#125;
+
+if results[0].Interface() != int64(60) &#123;
+    t.Errorf(
+        &quot;result = %v(%v), want int64(60)&quot;,
+        results[0].Type().String(),
+        results[0].Interface(),
+    )
+&#125;
+</code></pre>
+<p>}<br>官方用例也很简单，大家可以看一看。</p>
+<p>定时任务<br>作者还结合了 Cron 强大的定时能力集成了定时任务的编排：</p>
+<p>触发</p>
+<p>&#x2F;&#x2F; RegisterPeriodicTask register a periodic task which will be triggered periodically<br>func (server *Server) RegisterPeriodicTask(spec, name string, signature *tasks.Signature) error {<br>&#x2F;&#x2F;check spec<br>schedule, err :&#x3D; cron.ParseStandard(spec)<br>if err !&#x3D; nil {<br>return err<br>}</p>
+<pre><code>f := func() &#123;
+    //get lock
+    err := server.lock.LockWithRetries(utils.GetLockName(name, spec), schedule.Next(time.Now()).UnixNano()-1)
+    if err != nil &#123;
+        return
+    &#125;
+
+    //send task
+    _, err = server.SendTask(tasks.CopySignature(signature))
+    if err != nil &#123;
+        log.ERROR.Printf(&quot;periodic task failed. task name is: %s. error is %s&quot;, name, err.Error())
+    &#125;
+&#125;
+
+_, err = server.scheduler.AddFunc(spec, f)
+return err
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; RegisterPeriodicChain register a periodic chain which will be triggered periodically<br>func (server *Server) RegisterPeriodicChain(spec, name string, signatures …*tasks.Signature) error {<br>&#x2F;&#x2F;check spec<br>schedule, err :&#x3D; cron.ParseStandard(spec)<br>if err !&#x3D; nil {<br>return err<br>}</p>
+<pre><code>f := func() &#123;
+    // new chain
+    chain, _ := tasks.NewChain(tasks.CopySignatures(signatures...)...)
+
+    //get lock
+    err := server.lock.LockWithRetries(utils.GetLockName(name, spec), schedule.Next(time.Now()).UnixNano()-1)
+    if err != nil &#123;
+        return
+    &#125;
+
+    //send task
+    _, err = server.SendChain(chain)
+    if err != nil &#123;
+        log.ERROR.Printf(&quot;periodic task failed. task name is: %s. error is %s&quot;, name, err.Error())
+    &#125;
+&#125;
+
+_, err = server.scheduler.AddFunc(spec, f)
+return err
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; RegisterPeriodicGroup register a periodic group which will be triggered periodically<br>func (server *Server) RegisterPeriodicGroup(spec, name string, sendConcurrency int, signatures …*tasks.Signature) error {<br>&#x2F;&#x2F;check spec<br>schedule, err :&#x3D; cron.ParseStandard(spec)<br>if err !&#x3D; nil {<br>return err<br>}</p>
+<pre><code>f := func() &#123;
+    // new group
+    group, _ := tasks.NewGroup(tasks.CopySignatures(signatures...)...)
+
+    //get lock
+    err := server.lock.LockWithRetries(utils.GetLockName(name, spec), schedule.Next(time.Now()).UnixNano()-1)
+    if err != nil &#123;
+        return
+    &#125;
+
+    //send task
+    _, err = server.SendGroup(group, sendConcurrency)
+    if err != nil &#123;
+        log.ERROR.Printf(&quot;periodic task failed. task name is: %s. error is %s&quot;, name, err.Error())
+    &#125;
+&#125;
+
+_, err = server.scheduler.AddFunc(spec, f)
+return err
+</code></pre>
+<p>}</p>
+<p>&#x2F;&#x2F; RegisterPeriodicChord register a periodic chord which will be triggered periodically<br>func (server *Server) RegisterPeriodicChord(spec, name string, sendConcurrency int, callback *tasks.Signature, signatures …*tasks.Signature) error {<br>&#x2F;&#x2F;check spec<br>schedule, err :&#x3D; cron.ParseStandard(spec)<br>if err !&#x3D; nil {<br>return err<br>}</p>
+<pre><code>f := func() &#123;
+    // new chord
+    group, _ := tasks.NewGroup(tasks.CopySignatures(signatures...)...)
+    chord, _ := tasks.NewChord(group, tasks.CopySignature(callback))
+
+    //get lock
+    err := server.lock.LockWithRetries(utils.GetLockName(name, spec), schedule.Next(time.Now()).UnixNano()-1)
+    if err != nil &#123;
+        return
+    &#125;
+
+    //send task
+    _, err = server.SendChord(chord, sendConcurrency)
+    if err != nil &#123;
+        log.ERROR.Printf(&quot;periodic task failed. task name is: %s. error is %s&quot;, name, err.Error())
+    &#125;
+&#125;
+
+_, err = server.scheduler.AddFunc(spec, f)
+return err
+</code></pre>
+<p>}</p>
+<p>可以看出几个任务编排结构作者都贴心的给出了相应的定时任务触发方法，而且支持了分布式架构，值得注意的的是分布式锁是定时描述spec 加任务名称，不要让这两个东西重复了。</p>
+<p>用例<br>&#x2F;&#x2F; 作者没有写用例我随意写一个方法调用<br>func main(){<br>sever.RegisterPeriodicTask(“0&#x2F;3 * * * * ?”, “checkTask”, &amp;tasks.Signature{}) &#x2F;&#x2F; 每三秒执行一次任务名为 checkTask 的任务<br>}</p>
+<p>总结<br>Machinery 的设计基于两个存储结构构件起来的，一个是任务触发队列这个通过Broker接口来调用，触发结构是Signature其中唯一标识为UUID，一个是任务结果状态记录，这个通过Backend接口来调用，结果记录结构为TaskState其中TaskUUID关联Signature的UUID。对外暴露的调用结构为Sever，其包含了Broker，Backend，以及注册任务执行函数Map。任务执行函数通过Signature中的Name做唯一标识来获取。调度结构为Worker，Worker结构通过不断的获取Broker中的任务触发来进行任务函数的执行同时根据函数执行的不同阶段向Backend中记录结果，在这个过程中为了逻辑清晰派生出了Task结构。Task结构主要做执行函数执行处理，而worker则主要起调度和协调作用它根据task执行的结果做一些处理。为了实现任务编排的需求又派生出了Group，Chord，Chain等结构但整个执行调度的基础都是基于单一Signature的触发的只是调度和状态定义方式有些许差异。</p>
+<p>写这篇文章还是耗费了我很长的时间的，因为这个库确实非常方便，但如果不进一步了解其实也难以发挥它的作用，希望我的这个说明可以对大家接下来的代码有所帮助。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://bitterteaer.asia">karr</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://bitterteaer.asia/Go%20%E8%AF%AD%E8%A8%80%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E5%A4%84%E7%90%86%E5%99%A8%20Machinery%20%E2%80%93%20%E6%9E%B6%E6%9E%84/">https://bitterteaer.asia/Go%20%E8%AF%AD%E8%A8%80%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E5%A4%84%E7%90%86%E5%99%A8%20Machinery%20%E2%80%93%20%E6%9E%B6%E6%9E%84/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="/img/avatar.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://unpkg.com/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://unpkg.com/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/%E5%88%97%E4%B8%BEmysql%E6%AD%A3%E5%9C%A8%E6%89%A7%E8%A1%8C%E4%B8%AD%E7%9A%84%E5%85%A8%E9%83%A8%E4%BA%8B%E5%8A%A1/" title="列举mysql正在执行中的全部事务"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous</div><div class="prev_info">列举mysql正在执行中的全部事务</div></div></a></div><div class="next-post pull-right"><a href="/gin%20%E6%A1%86%E6%9E%B6%E5%AE%9E%E7%8E%B0%E5%BC%82%E6%AD%A5%E5%A4%84%E7%90%86/" title="gin 框架实现异步处理"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next</div><div class="next_info">gin 框架实现异步处理</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">karr</div><div class="author-info__description">莫等闲，白了少年头。</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">280</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">194</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://gitee.com/bitterteaer"><i class="fab fa-github"></i><span>gitee</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/bitterteaer" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://www.cnblogs.com/bitterteaer" target="_blank" title="Cnblogs"><i class="fa fa-book-open"></i></a><a class="social-icon" href="mailto:bitterteaer@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/python-re-search/" title="python re.search">python re.search</a><time datetime="2025-01-07T04:22:09.000Z" title="Created 2025-01-07 12:22:09">2025-01-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/%E8%8B%B1%E8%AF%AD%E5%8D%95%E8%AF%8Dstate%E5%92%8Cstatus%E7%9A%84%E5%8C%BA%E5%88%AB/" title="state和status的区别">state和status的区别</a><time datetime="2025-01-02T08:01:19.000Z" title="Created 2025-01-02 16:01:19">2025-01-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/%E9%87%8D%E6%96%B0%E8%AE%A4%E8%AF%86vue%E4%B9%8B%E4%BA%8B%E4%BB%B6%E9%98%BB%E6%AD%A2%E5%86%92%E6%B3%A1/" title="重新认识vue之事件阻止冒泡">重新认识vue之事件阻止冒泡</a><time datetime="2025-01-02T06:31:55.000Z" title="Created 2025-01-02 14:31:55">2025-01-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/Extraneous-non-props-attributes-id-were-passed-to-component-but-could-not-be___/" title="Extraneous non-props attributes (id) were passed to component but could not be automatically inherited because component renders fragment or text root nodes.">Extraneous non-props attributes (id) were passed to component but could not be automatically inherited because component renders fragment or text root nodes.</a><time datetime="2024-11-13T02:29:10.000Z" title="Created 2024-11-13 10:29:10">2024-11-13</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/Mac%E5%AE%89%E8%A3%85mysqlclient%E6%8A%A5%E9%94%99%EF%BC%9ACan-not-find-valid-pkg-config-name/" title="Mac安装mysqlclient报错：Can not find valid pkg-config name">Mac安装mysqlclient报错：Can not find valid pkg-config name</a><time datetime="2024-11-06T04:57:09.000Z" title="Created 2024-11-06 12:57:09">2024-11-06</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2024 - 2025 By karr</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text"><a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2024240115号</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=4.13.0"></script><script src="/js/main.js?v=4.13.0"></script><script src="https://unpkg.com/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.umd.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=4.13.0"></script></div></div></body></html>
