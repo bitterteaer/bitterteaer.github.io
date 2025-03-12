@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://bitterteaer.github.io/%E5%9B%BA%E5%AE%9A%E6%95%B4%E4%B8%AA%E9%A1%B5%E9%9D%A2%E5%8F%AA%E6%9C%89100-%E7%9A%84%E9%AB%98%E5%BA%A6%EF%BC%8C%E4%B8%8D%E8%83%BD%E8%BF%9B%E8%A1%8C%E4%B8%8B%E6%8B%89%EF%BC%8C%E5%BD%93%E7%BB%84%E4%BB%B6%E7%9A%84%E5%86%85%E5%AE%B9%E8%B6%85%E8%BF%87100-%E6%97%B6%E5%80%99%E5%9C%A8%E4%B8%AA%E8%87%AA%E7%BB%84%E4%BB%B6%E5%86%85%E9%83%A8%E5%8A%A0%E4%B8%8A%E6%BB%9A%E5%8A%A8%E6%9D%A1/</loc>
+    
+    <lastmod>2025-03-12</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://bitterteaer.github.io/html%E4%BF%9D%E8%AF%81%E8%83%8C%E6%99%AF%E8%89%B2%E9%93%BA%E6%BB%A1%E6%95%B4%E4%B8%AA%E9%A1%B5%E9%9D%A2/</loc>
     
     <lastmod>2025-03-12</lastmod>
@@ -3988,6 +3997,13 @@
   
   <url>
     <loc>https://bitterteaer.github.io/tags/%E8%83%8C%E6%99%AF%E8%89%B2/</loc>
+    <lastmod>2025-03-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://bitterteaer.github.io/tags/%E6%BB%9A%E5%8A%A8%E6%9D%A1/</loc>
     <lastmod>2025-03-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
