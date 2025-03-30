@@ -1,0 +1,218 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Golang 之协程详解 | karr's blog</title><meta name="author" content="karr"><meta name="copyright" content="karr"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="Golang 线程和协程的区别备注：需要区分进程、线程(内核级线程)、协程(用户级线程)三个概念。  进程、线程 和 协程 之间概念的区别  对于 进程、线程，都是有内核进行调度，有 CPU 时间片的概念，进行 抢占式调度（有多种调度算法） 对于 协程(用户级线程)，这是对内核透明的，也就是系统并不知道有协程的存在，是完全由用户自己的程序进行调度的，因为是由用户程序自己控制，那么就很难像抢占式调度">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Golang 之协程详解">
+<meta property="og:url" content="https://bitterteaer.github.io/Golang-%E4%B9%8B%E5%8D%8F%E7%A8%8B%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="karr&#39;s blog">
+<meta property="og:description" content="Golang 线程和协程的区别备注：需要区分进程、线程(内核级线程)、协程(用户级线程)三个概念。  进程、线程 和 协程 之间概念的区别  对于 进程、线程，都是有内核进行调度，有 CPU 时间片的概念，进行 抢占式调度（有多种调度算法） 对于 协程(用户级线程)，这是对内核透明的，也就是系统并不知道有协程的存在，是完全由用户自己的程序进行调度的，因为是由用户程序自己控制，那么就很难像抢占式调度">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://bitterteaer.github.io/img/avatar.jpg">
+<meta property="article:published_time" content="2024-07-22T03:43:46.000Z">
+<meta property="article:modified_time" content="2024-07-24T15:25:45.822Z">
+<meta property="article:author" content="karr">
+<meta property="article:tag" content="人工智能, AI, AGI, AIGC, AI Agent, Prompt, LLM, 人工智能应用, 深度学习, 机器学习, 自然语言处理, 生成式AI, 智能算法, 数据科学, 自动化技术, AI驱动技术, AI解决方案, 人机交互, 认知计算, 算法模型, AI平台, 强人工智能, 弱人工智能, 语义理解, 智能代理, AI系统集成, AI工具">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://bitterteaer.github.io/img/avatar.jpg"><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://bitterteaer.github.io/Golang-%E4%B9%8B%E5%8D%8F%E7%A8%8B%E8%AF%A6%E8%A7%A3/index.html"><link rel="preconnect" href="//unpkg.com"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=4.13.0"><link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css"><link rel="stylesheet" href="https://unpkg.com/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Error',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://unpkg.com/@egjs/infinitegrid@4.11.1/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Golang 之协程详解',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-07-24 23:25:45'
+}</script><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 7.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">288</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">201</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><hr class="custom-hr"/></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="karr's blog"><span class="site-name">karr's blog</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Golang 之协程详解</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-07-22T03:43:46.000Z" title="Created 2024-07-22 11:43:46">2024-07-22</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2024-07-24T15:25:45.822Z" title="Updated 2024-07-24 23:25:45">2024-07-24</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Golang 之协程详解"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h3 id="Golang-线程和协程的区别"><a href="#Golang-线程和协程的区别" class="headerlink" title="Golang 线程和协程的区别"></a>Golang 线程和协程的区别</h3><p>备注：需要区分进程、线程(内核级线程)、协程(用户级线程)三个概念。</p>
+<ul>
+<li>进程、线程 和 协程 之间概念的区别</li>
+</ul>
+<p>对于 进程、线程，都是有内核进行调度，有 CPU 时间片的概念，进行 抢占式调度（有多种调度算法）</p>
+<p>对于 协程(用户级线程)，这是对内核透明的，也就是系统并不知道有协程的存在，是完全由用户自己的程序进行调度的，因为是由用户程序自己控制，那么就很难像抢占式调度那样做到强制的<br>CPU 控制权切换到其他进程&#x2F;线程，通常只能进行 协作式调度，需要协程自己主动把控制权转让出去之后，其他协程才能被执行到。</p>
+<ul>
+<li>goroutine 和协程区别</li>
+</ul>
+<p>本质上，goroutine 就是协程。 不同的是，Golang 在 runtime、系统调用等多方面对 goroutine 调度进行了封装和处理，当遇到长时间执行或者进行系统调用时，会主动把当前<br>goroutine 的CPU (P) 转让出去，让其他 goroutine 能被调度并执行，也就是 Golang 从语言层面支持了协程。Golang<br>的一大特色就是从语言层面原生支持协程，在函数或者方法前面加 go关键字就可创建一个协程。</p>
+<ul>
+<li>其他方面的比较</li>
+</ul>
+<ol>
+<li><p>内存消耗方面<br>每个 goroutine (协程) 默认占用内存远比 Java 、C 的线程少。 goroutine：2KB 线程：8MB</p>
+</li>
+<li><p>线程和 goroutine 切换调度开销方面<br>线程&#x2F;goroutine 切换开销方面，goroutine 远比线程小 线程：涉及模式切换(从用户态切换到内核态)、16个寄存器、PC、SP…等寄存器的刷新等。<br>goroutine：只有三个寄存器的值修改 - PC &#x2F; SP &#x2F; DX.</p>
+</li>
+</ol>
+<h3 id="协程底层实现原理"><a href="#协程底层实现原理" class="headerlink" title="协程底层实现原理"></a>协程底层实现原理</h3><p>线程是操作系统的内核对象，多线程编程时，如果线程数过多，就会导致频繁的上下文切换，这些 cpu<br>时间是一个额外的耗费。所以在一些高并发的网络服务器编程中，使用一个线程服务一个 socket<br>连接是很不明智的。于是操作系统提供了基于事件模式的异步编程模型。用少量的线程来服务大量的网络连接和I&#x2F;O操作。但是采用异步和基于事件的编程模型，复杂化了程序代码的编写，非常容易出错。因为线程穿插，也提高排查错误的难度。<br>协程，是在应用层模拟的线程，他避免了上下文切换的额外耗费，兼顾了多线程的优点。简化了高并发程序的复杂度。举个例子，一个高并发的网络服务器，每一个socket连接进来，服务器用一个协程来对他进行服务。代码非常清晰。而且兼顾了性能。</p>
+<blockquote>
+<p>那么，协程是怎么实现的呢？</p>
+</blockquote>
+<p>他和线程的原理是一样的，当 a线程 切换到 b线程 的时候，需要将 a线程 的相关执行进度压入栈，然后将 b线程 的执行进度出栈，进入<br>b线程 的执行序列。协程只不过是在 应用层 实现这一点。但是，协程并不是由操作系统调度的，而且应用程序也没有能力和权限执行 cpu<br>调度。怎么解决这个问题？</p>
+<p>答案是，协程是基于线程的。内部实现上，维护了一组数据结构和 n 个线程，真正的执行还是线程，协程执行的代码被扔进一个待执行队列中，由这<br>n 个线程从队列中拉出来执行。这就解决了协程的执行问题。那么协程是怎么切换的呢？答案是：golang 对各种 io函数<br>进行了封装，这些封装的函数提供给应用程序使用，而其内部调用了操作系统的异步 io函数，当这些异步函数返回 busy 或 bloking<br>时，golang 利用这个时机将现有的执行序列压栈，让线程去拉另外一个协程的代码来执行，基本原理就是这样，利用并封装了操作系统的异步函数。包括<br>linux 的 epoll、select 和 windows 的 iocp、event 等。</p>
+<p>由于golang是从编译器和语言基础库多个层面对协程做了实现，所以，golang的协程是目前各类有协程概念的语言中实现的最完整和成熟的。十万个协程同时运行也毫无压力。关键我们不会这么写代码。但是总体而言，程序员可以在编写<br>golang 代码的时候，可以更多的关注业务逻辑的实现，更少的在这些关键的基础构件上耗费太多精力。</p>
+<h3 id="协程的历史以及特点"><a href="#协程的历史以及特点" class="headerlink" title="协程的历史以及特点"></a>协程的历史以及特点</h3><p>协程（Coroutine）是在1963年由Melvin E. Conway USAF, Bedford,<br>MA等人提出的一个概念。而且协程的概念是早于线程（Thread）提出的。但是由于协程是非抢占式的调度，无法实现公平的任务调用。也无法直接利用多核优势。因此，我们不能武断地说协程是比线程更高级的技术。</p>
+<p>尽管，在任务调度上，协程是弱于线程的。但是在资源消耗上，协程则是极低的。一个线程的内存在 MB 级别，而协程只需要 KB<br>级别。而且线程的调度需要内核态与用户的频繁切入切出，资源消耗也不小。</p>
+<p>我们把协程的基本特点归纳为：</p>
+<ol>
+<li>协程调度机制无法实现公平调度</li>
+<li>协程的资源开销是非常低的，一台普通的服务器就可以支持百万协程。</li>
+</ol>
+<p>那么，近几年为何协程的概念可以大热。我认为一个特殊的场景使得协程能够广泛的发挥其优势，并且屏蔽掉了劣势 –&gt;<br>网络编程。与一般的计算机程序相比，网络编程有其独有的特点。</p>
+<ol>
+<li>高并发（每秒钟上千数万的单机访问量）</li>
+<li>Request&#x2F;Response。程序生命期端（毫秒，秒级）</li>
+<li>高IO，低计算（连接数据库，请求API）。</li>
+</ol>
+<p>最开始的网络程序其实就是一个线程一个请求设计的（Apache）。后来，随着网络的普及，诞生了C10K问题。Nginx 通过单线程异步 IO<br>把网络程序的执行流程进行了乱序化，通过 IO 事件机制最大化的保证了CPU的利用率。</p>
+<p>至此，现代网络程序的架构已经形成。基于IO事件调度的异步编程。其代表作恐怕就属 NodeJS了吧。</p>
+<blockquote>
+<p>异步编程的槽点</p>
+</blockquote>
+<p>异步编程为了追求程序的性能，强行的将线性的程序打乱，程序变得非常的混乱与复杂。对程序状态的管理也变得异常困难。写过Nginx C<br>Module的同学应该知道我说的是什么。我们开始吐槽 NodeJS 那恶心的层层Callback。</p>
+<blockquote>
+<p>Golang</p>
+</blockquote>
+<p>在我们疯狂被 NodeJS的层层回调恶心到的时候，Golang 作为名门之后开始走入我们的视野。并且迅速的在Web后端极速的跑马圈地。其代表者<br>Docker 以及围绕这 Docker 展开的整个容器生态圈欣欣向荣起来。其最大的卖点 – 协程 开始真正的流行与讨论起来。</p>
+<p>我们开始向写PHP一样来写全异步IO的程序。看上去美好极了，仿佛世界就是这样了。</p>
+<p>在网络编程中，我们可以理解为 Golang 的协程本质上其实就是对 IO 事件的封装，并且通过语言级的支持让异步的代码看上去像同步执行的一样。</p>
+<h3 id="Golang-协程的应用"><a href="#Golang-协程的应用" class="headerlink" title="Golang 协程的应用"></a>Golang 协程的应用</h3><p>我们知道，协程（coroutine）是Go语言中的轻量级线程实现，由Go运行时（runtime）管理。</p>
+<p>在一个函数调用前加上go关键字，这次调用就会在一个新的goroutine中并发执行。当被调用的函数返回时，这个goroutine也自动结束。需要注意的是，如果这个函数有返回值，那么这个返回值会被丢弃。</p>
+<p>先看一下下面的程序代码：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Add</span><span class="params">(x, y <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">    z := x + y</span><br><span class="line">    fmt.Println(z)</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;<span class="number">10</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> Add(i, i)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行上面的代码，会发现屏幕什么也没打印出来，程序就退出了。<br>对于上面的例子，main()函数启动了10个goroutine，然后返回，这时程序就退出了，而被启动的执行 Add() 的 goroutine 没来得及执行。我们想要让<br>main() 函数等待所有 goroutine 退出后再返回，但如何知道 goroutine 都退出了呢？这就引出了多个goroutine之间通信的问题。</p>
+<p>在工程上，有两种最常见的并发通信模型：共享内存 和 消息。</p>
+<p>下面的例子，使用了锁变量（属于一种共享内存）来同步协程，事实上 Go 语言主要使用消息机制（channel）来作为通信模型</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"> </span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line">    <span class="string">&quot;sync&quot;</span></span><br><span class="line">    <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">var</span> counter <span class="type">int</span> = <span class="number">0</span></span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Count</span><span class="params">(lock *sync.Mutex)</span></span> &#123;</span><br><span class="line">    lock.Lock() <span class="comment">// 上锁</span></span><br><span class="line">    counter++</span><br><span class="line">    fmt.Println(<span class="string">&quot;counter =&quot;</span>, counter)</span><br><span class="line">    lock.Unlock()   <span class="comment">// 解锁</span></span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    lock := &amp;sync.Mutex&#123;&#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">for</span> i:=<span class="number">0</span>; i&lt;<span class="number">10</span>; i++ &#123;</span><br><span class="line">        <span class="keyword">go</span> Count(lock)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        lock.Lock() <span class="comment">// 上锁</span></span><br><span class="line">        c := counter</span><br><span class="line">        lock.Unlock()   <span class="comment">// 解锁</span></span><br><span class="line"> </span><br><span class="line">        runtime.Gosched() <span class="comment">// 出让时间片</span></span><br><span class="line"> </span><br><span class="line">        <span class="keyword">if</span> c &gt;= <span class="number">10</span> &#123;</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考资料：<br><a target="_blank" rel="noopener" href="https://www.cnblogs.com/liang1101/p/7285955.html">https://www.cnblogs.com/liang1101/p/7285955.html</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://bitterteaer.github.io">karr</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://bitterteaer.github.io/Golang-%E4%B9%8B%E5%8D%8F%E7%A8%8B%E8%AF%A6%E8%A7%A3/">https://bitterteaer.github.io/Golang-%E4%B9%8B%E5%8D%8F%E7%A8%8B%E8%AF%A6%E8%A7%A3/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles in this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless stating additionally.</span></div></div><div class="tag_share"><div class="post-meta__tag-list"></div><div class="post_share"><div class="social-share" data-image="/img/avatar.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://unpkg.com/butterfly-extsrc@1.1.3/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://unpkg.com/butterfly-extsrc@1.1.3/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/%E9%80%9A%E8%BF%87%E4%B8%80%E4%B8%AA%E4%BE%8B%E5%AD%90%E6%9B%B4%E5%A5%BD%E7%9A%84%E7%90%86%E8%A7%A3%E5%8D%8F%E7%A8%8B-python/" title="通过一个例子更好的理解协程-python"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous</div><div class="prev_info">通过一个例子更好的理解协程-python</div></div></a></div><div class="next-post pull-right"><a href="/%E5%8D%8F%E7%A8%8B%E5%88%87%E6%8D%A2%E7%9A%84%E4%B8%89%E7%A7%8D%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/" title="协程切换的三种底层实现方式"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next</div><div class="next_info">协程切换的三种底层实现方式</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">karr</div><div class="author-info__description">什么都无法舍弃的人，什么也改变不了</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">288</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">201</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://gitee.com/bitterteaer"><i class="fab fa-github"></i><span>gitee</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/bitterteaer" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="https://www.cnblogs.com/bitterteaer" target="_blank" title="Cnblogs"><i class="fa fa-book-open"></i></a><a class="social-icon" href="mailto:bitterteaer@163.com" target="_blank" title="Email"><i class="fas fa-envelope-open-text"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Golang-%E7%BA%BF%E7%A8%8B%E5%92%8C%E5%8D%8F%E7%A8%8B%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-number">1.</span> <span class="toc-text">Golang 线程和协程的区别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%8F%E7%A8%8B%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86"><span class="toc-number">2.</span> <span class="toc-text">协程底层实现原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%8F%E7%A8%8B%E7%9A%84%E5%8E%86%E5%8F%B2%E4%BB%A5%E5%8F%8A%E7%89%B9%E7%82%B9"><span class="toc-number">3.</span> <span class="toc-text">协程的历史以及特点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Golang-%E5%8D%8F%E7%A8%8B%E7%9A%84%E5%BA%94%E7%94%A8"><span class="toc-number">4.</span> <span class="toc-text">Golang 协程的应用</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/Git%E6%8A%A5%E9%94%99%EF%BC%9A-Failed-to-connect-to-github-com-port-443-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88/" title="Git报错： Failed to connect to github.com port 443 解决方案">Git报错： Failed to connect to github.com port 443 解决方案</a><time datetime="2025-03-30T08:21:46.000Z" title="Created 2025-03-30 16:21:46">2025-03-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/AI-Agent-%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%9B%BE/" title="AI Agent 系统架构图">AI Agent 系统架构图</a><time datetime="2025-03-28T09:56:03.000Z" title="Created 2025-03-28 17:56:03">2025-03-28</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/%E5%9B%BA%E5%AE%9A%E6%95%B4%E4%B8%AA%E9%A1%B5%E9%9D%A2%E5%8F%AA%E6%9C%89100-%E7%9A%84%E9%AB%98%E5%BA%A6%EF%BC%8C%E4%B8%8D%E8%83%BD%E8%BF%9B%E8%A1%8C%E4%B8%8B%E6%8B%89%EF%BC%8C%E5%BD%93%E7%BB%84%E4%BB%B6%E7%9A%84%E5%86%85%E5%AE%B9%E8%B6%85%E8%BF%87100-%E6%97%B6%E5%80%99%E5%9C%A8%E4%B8%AA%E8%87%AA%E7%BB%84%E4%BB%B6%E5%86%85%E9%83%A8%E5%8A%A0%E4%B8%8A%E6%BB%9A%E5%8A%A8%E6%9D%A1/" title="固定整个页面只有100%的高度，不能进行下拉，当组件的内容超过100%时候在个自组件内部加上滚动条">固定整个页面只有100%的高度，不能进行下拉，当组件的内容超过100%时候在个自组件内部加上滚动条</a><time datetime="2025-03-12T10:23:06.000Z" title="Created 2025-03-12 18:23:06">2025-03-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/html%E4%BF%9D%E8%AF%81%E8%83%8C%E6%99%AF%E8%89%B2%E9%93%BA%E6%BB%A1%E6%95%B4%E4%B8%AA%E9%A1%B5%E9%9D%A2/" title="html保证背景色铺满整个页面">html保证背景色铺满整个页面</a><time datetime="2025-03-12T04:46:09.000Z" title="Created 2025-03-12 12:46:09">2025-03-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/importlib-import-module%E5%BC%BA%E5%88%B6%E4%BB%8E%E6%96%87%E4%BB%B6%E5%8A%A0%E8%BD%BD/" title="importlib.import_module强制从文件加载">importlib.import_module强制从文件加载</a><time datetime="2025-03-07T08:14:56.000Z" title="Created 2025-03-07 16:14:56">2025-03-07</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2024 - 2025 By karr</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=4.13.0"></script><script src="/js/main.js?v=4.13.0"></script><script src="https://unpkg.com/@fancyapps/ui@5.0.33/dist/fancybox/fancybox.umd.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=4.13.0"></script></div></div></body></html>
